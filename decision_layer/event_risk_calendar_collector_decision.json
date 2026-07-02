@@ -1,0 +1,15 @@
+{
+  "status": "collector_output_ready",
+  "recommended_next_step": "review_event_risk_calendar_coverage",
+  "output_path": "inputs\\event_risk_calendar.csv",
+  "rows": 145,
+  "source_count": 10,
+  "source_error_count": 0,
+  "new_input_not_enabled": true,
+  "do_not_retrain_yet": true,
+  "formal_outputs_unchanged": true,
+  "official_source_families": [
+    "TWSE OpenAPI",
+    "TPEx OpenAPI"
+  ]
+}

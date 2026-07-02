@@ -1,0 +1,11 @@
+﻿source_name,source_url,event_type,status,raw_rows,kept_events,error
+TWSE material information,https://openapi.twse.com.tw/v1/opendata/t187ap04_L,material_info,ok,100,19,
+TWSE attention securities,https://openapi.twse.com.tw/v1/announcement/notice,attention,ok,1,0,
+TWSE disposition securities,https://openapi.twse.com.tw/v1/announcement/punish,disposition,ok,31,12,
+TWSE trading halt and resumption,https://openapi.twse.com.tw/v1/exchangeReport/TWTAWU,suspension_resumption,ok,1,0,
+TWSE ex-dividend preview,https://openapi.twse.com.tw/v1/exchangeReport/TWT48U_ALL,ex_dividend,ok,339,61,
+TPEx material information,https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap04_O,material_info,ok,64,7,
+TPEx attention securities,https://www.tpex.org.tw/openapi/v1/tpex_trading_warning_information,attention,ok,50,11,
+TPEx disposition securities,https://www.tpex.org.tw/openapi/v1/tpex_disposal_information,disposition,ok,52,8,
+TPEx trading halt and resumption,https://www.tpex.org.tw/openapi/v1/tpex_spendi_today,suspension_resumption,ok,1,0,
+TPEx ex-dividend preview,https://www.tpex.org.tw/openapi/v1/tpex_exright_prepost,ex_dividend,ok,301,27,
