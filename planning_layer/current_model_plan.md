@@ -1,31 +1,31 @@
 # Current Model Plan
 
-- Generated: 2026-07-02 23:48:05
+- Generated: 2026-07-03 00:10:11
 - Data latest date: 2026-06-30
 - Status: waiting_for_user_confirmation
 - Confirmation required: true
 
 ## Problem
 
-The target review found the old +3% touch target is too broad. The next step is retraining the single deep-learning main model on the risk-adjusted success label.
+The data learnability review found stable signal in the three CSV inputs, but the full-feature risk-adjusted model failed holdout. The next step is feature-screened retraining of the single deep-learning main model.
 
 ## Recommended Next Step
 
 - Experiment id: `risk_adjusted_main_model_training_plan`
-- Hypothesis: The single integrated deep-learning route should train on risk_adjusted_10d_success so it learns clean +3% trades, not old +3% touches that first hit -3% adverse risk.
-- Why now: The target redefinition review found enough samples and showed many old successes fail the adverse-first rule, so the next step is retraining the existing main model against the cleaner target.
+- Hypothesis: The single integrated deep-learning route should first screen for train/development-stable features, then retrain on risk_adjusted_10d_success so weak or unstable features do not dilute the useful signal.
+- Why now: The data learnability review found stable success, risk-filter, and return-ranking clues, while the full-feature retrain still failed holdout. The next step is feature-screened retraining, not a new model branch.
 
-This is recommended because the target review already passed. The main question is now whether the existing integrated deep-learning route can learn the cleaner risk-adjusted label without creating another model branch.
+This is recommended because the data learnability review found stable clues, while the full-feature model diluted them. The main question is whether screened features can improve the existing integrated deep-learning route without creating another model branch.
 
 ## Candidate Experiments
 
 ### risk_adjusted_main_model_training_plan
 
-- Hypothesis: The single integrated deep-learning route should train on risk_adjusted_10d_success so it learns clean +3% trades, not old +3% touches that first hit -3% adverse risk.
-- Why now: The target redefinition review found enough samples and showed many old successes fail the adverse-first rule, so the next step is retraining the existing main model against the cleaner target.
+- Hypothesis: The single integrated deep-learning route should first screen for train/development-stable features, then retrain on risk_adjusted_10d_success so weak or unstable features do not dilute the useful signal.
+- Why now: The data learnability review found stable success, risk-filter, and return-ranking clues, while the full-feature retrain still failed holdout. The next step is feature-screened retraining, not a new model branch.
 - Target labels: `risk_adjusted_10d_success, old_target_success_comparison, failure_risk, same_day_relative_advantage, episode_start`
 - Allowed inputs: `stock_daily_all, market_daily, theme_group`
-- Expected outputs: `main_model_training_spec.md, main_model_validation_summary.csv, main_model_decision.md`
+- Expected outputs: `main_model_training_spec.md, main_model_feature_screen.csv, main_model_validation_summary.csv, main_model_decision.md`
 
 ### validation_harness_first_plan
 

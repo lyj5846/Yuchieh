@@ -105,8 +105,8 @@ def build_plan(config: dict, data_latest_date: str) -> dict:
     candidates = [
         {
             "id": "risk_adjusted_main_model_training_plan",
-            "hypothesis": "The single integrated deep-learning route should train on risk_adjusted_10d_success so it learns clean +3% trades, not old +3% touches that first hit -3% adverse risk.",
-            "why_now": "The target redefinition review found enough samples and showed many old successes fail the adverse-first rule, so the next step is retraining the existing main model against the cleaner target.",
+            "hypothesis": "The single integrated deep-learning route should first screen for train/development-stable features, then retrain on risk_adjusted_10d_success so weak or unstable features do not dilute the useful signal.",
+            "why_now": "The data learnability review found stable success, risk-filter, and return-ranking clues, while the full-feature retrain still failed holdout. The next step is feature-screened retraining, not a new model branch.",
             "target_label": [
                 "risk_adjusted_10d_success",
                 "old_target_success_comparison",
@@ -117,6 +117,8 @@ def build_plan(config: dict, data_latest_date: str) -> dict:
             "allowed_inputs": allowed_inputs,
             "feature_changes": [
                 "Create signal-day features from stock price, volume, institution, margin, day-trade, market, and theme data.",
+                "Screen features using train/development correlation stability from the data learnability review.",
+                "Do not use holdout correlations to select features; holdout is validation-only.",
                 "Use only data known on or before the signal day.",
                 "Keep theme data as a categorical feature or validation group only.",
                 "Use future prices only in the label layer to identify +3% close before -3% low.",
@@ -150,6 +152,7 @@ def build_plan(config: dict, data_latest_date: str) -> dict:
             ],
             "expected_outputs": [
                 "main_model_training_spec.md",
+                "main_model_feature_screen.csv",
                 "main_model_validation_summary.csv",
                 "main_model_decision.md",
             ],
@@ -247,7 +250,7 @@ def build_plan(config: dict, data_latest_date: str) -> dict:
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "data_latest_date": data_latest_date,
         "planning_status": "waiting_for_user_confirmation",
-        "problem_statement": "The target review found the old +3% touch target is too broad. The next step is retraining the single deep-learning main model on the risk-adjusted success label.",
+        "problem_statement": "The data learnability review found stable signal in the three CSV inputs, but the full-feature risk-adjusted model failed holdout. The next step is feature-screened retraining of the single deep-learning main model.",
         "recommended_experiment_id": "risk_adjusted_main_model_training_plan",
         "confirmation_required": True,
         "experiment_candidates": candidates,
@@ -304,7 +307,7 @@ def write_plan_markdown(plan: dict) -> None:
         f"- Hypothesis: {recommended['hypothesis']}",
         f"- Why now: {recommended['why_now']}",
         "",
-        "This is recommended because the target review already passed. The main question is now whether the existing integrated deep-learning route can learn the cleaner risk-adjusted label without creating another model branch.",
+        "This is recommended because the data learnability review found stable clues, while the full-feature model diluted them. The main question is whether screened features can improve the existing integrated deep-learning route without creating another model branch.",
         "",
         "## Candidate Experiments",
         "",

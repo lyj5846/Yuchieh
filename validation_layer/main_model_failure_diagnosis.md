@@ -1,6 +1,6 @@
 # Main Model Failure Diagnosis
 
-- Generated: 2026-07-02 23:56:18
+- Generated: 2026-07-03 00:14:34
 - Data latest date: 2026-06-30
 - Main model status: `not_promoted`
 - Formal output: unchanged
@@ -16,42 +16,42 @@
 ## 核心證據
 
 - Target contract: risk_adjusted_10d_success.
-- Holdout success rate 35.56%, below same-day market baseline 40.55%.
-- Holdout success lift -4.99%; development success lift 19.48%.
-- Integrated score high-low success delta 6.94%.
-- Success advantage head high-low success delta 4.95%.
-- Same-day advantage head high-low advantage delta 3.11%.
-- Same-day advantage head high-low soft target delta 3.93%.
+- Holdout success rate 22.52%, below same-day market baseline 38.83%.
+- Holdout success lift -16.31%; development success lift 16.93%.
+- Integrated score high-low success delta -6.63%.
+- Success advantage head high-low success delta 11.33%.
+- Same-day advantage head high-low advantage delta 15.78%.
+- Same-day advantage head high-low soft target delta 7.57%.
 - Stable same-day return ranking feature count 9/10.
-- Raw same-day advantage Top3 return lift 2.30%.
-- Return-ranking probe holdout success lift -1.96%.
-- Same-day advantage contribution share inside integrated score 46.65%.
-- Selected weight development monthly stability 3/3; objective score 0.176313.
-- Risk head high-low failure delta 1.03%; risk separation is not the primary blocker.
+- Raw same-day advantage Top3 return lift 3.40%.
+- Return-ranking probe holdout success lift -9.80%.
+- Same-day advantage contribution share inside integrated score 56.48%.
+- Selected weight development monthly stability 3/3; objective score 0.178333.
+- Risk head high-low failure delta 2.09%; risk separation is not the primary blocker.
 
 ## 白話解讀
 
 - 目前模型會收斂，但收斂到的不是可正式使用的選股排序。
-- holdout 成功率與報酬優勢都沒有通過，主模型不能升正式。
+- holdout 報酬優勢已轉正，但成功率輸同日市場，代表報酬排序有線索，整合分數仍不夠平衡。
 - 同日報酬排序 head 已轉正，問題已從「head 學反」收斂成「整合分數如何同時保留成功率與報酬優勢」。
 
 ## 同日報酬排序根因
 
 - 穩定的同日報酬排序特徵數: 9/10。
-- same_day_advantage_head 在 development 的 soft target 高低差: 12.86%。
-- same_day_advantage_head 在 holdout 的 soft target 高低差: 3.93%。
-- 單看 same_day_advantage_head 的 Top3 return lift: 2.30%。
-- 整合分數中的 same_day_advantage 權重貢獻占比: 46.65%。
-- holdout 負報酬優勢月份數: 3。
+- same_day_advantage_head 在 development 的 soft target 高低差: 13.47%。
+- same_day_advantage_head 在 holdout 的 soft target 高低差: 7.57%。
+- 單看 same_day_advantage_head 的 Top3 return lift: 3.40%。
+- 整合分數中的 same_day_advantage 權重貢獻占比: 56.48%。
+- holdout 負報酬優勢月份數: 1。
 
 根因判定: `review_target_or_data_sufficiency`。風險調整目標重訓後仍未通過正式驗證；不要再補權重或新增分支，下一步應檢討目前三份資料是否足以支撐此交易目標。
 
 ## 整合分數權重根因
 
 - development 月度穩定: 3/3 個出手月份同時通過 success lift 與 return lift。
-- development 最差月 success lift: 6.72%。
-- development 最差月 return lift: 2.57%。
-- 選定權重的 balanced objective score: 0.176313。
+- development 最差月 success lift: 15.02%。
+- development 最差月 return lift: 3.19%。
+- 選定權重的 balanced objective score: 0.178333。
 - 權重穩定檢查通過: True。
 
 ## 輸出檔案

@@ -27,6 +27,7 @@ SCORES_PATH = PROJECT_ROOT / "model_layer" / "main_model_scores.csv"
 TRAINING_SPEC_PATH = PROJECT_ROOT / "model_layer" / "main_model_training_spec.md"
 DECISION_JSON_PATH = PROJECT_ROOT / "decision_layer" / "main_model_decision.json"
 STRATEGY_TUNING_PATH = PROJECT_ROOT / "validation_layer" / "main_model_strategy_tuning.csv"
+FEATURE_SCREEN_PATH = PROJECT_ROOT / "validation_layer" / "main_model_feature_screen.csv"
 
 REQUIRED_COLUMNS = {
     "target_success",
@@ -100,6 +101,8 @@ def main() -> None:
         fail(f"missing decision json: {DECISION_JSON_PATH}")
     if not STRATEGY_TUNING_PATH.exists():
         fail(f"missing strategy tuning table: {STRATEGY_TUNING_PATH}")
+    if not FEATURE_SCREEN_PATH.exists():
+        fail(f"missing feature screen table: {FEATURE_SCREEN_PATH}")
 
     scores = pd.read_csv(SCORES_PATH, encoding="utf-8-sig")
     missing = sorted((REQUIRED_COLUMNS | REQUIRED_RETURN_RANKING_FEATURES) - set(scores.columns))
@@ -199,6 +202,8 @@ def main() -> None:
         if phrase not in spec_text:
             fail(f"training spec missing risk-adjusted target phrase: {phrase}")
     for phrase in [
+        "Feature screen: selected",
+        "Feature screen uses train/development correlation stability only",
         "same-day relative return-ranking features",
         "same_day_advantage loss weight",
     ]:
@@ -228,9 +233,22 @@ def main() -> None:
         "development_min_monthly_return_lift",
         "selected_weight_stability_passed",
         "selected_weight_objective_score",
+        "feature_screen_enabled",
+        "feature_screen_source",
+        "feature_screen_output",
+        "feature_screen_uses_holdout_for_selection",
+        "original_feature_count",
+        "selected_feature_count",
+        "selected_feature_preview",
     ]:
         if key not in decision:
             fail(f"decision json missing required field: {key}")
+    if decision["feature_screen_enabled"] is not True:
+        fail("decision json must record enabled feature screening")
+    if decision["feature_screen_uses_holdout_for_selection"] is not False:
+        fail("feature screen must not use holdout for selection")
+    if decision["selected_feature_count"] <= 0 or decision["selected_feature_count"] > decision["original_feature_count"]:
+        fail("selected feature count must be positive and not exceed original feature count")
 
     if decision["development_monthly_total_months"] <= 0:
         fail("decision json must record at least one development month")
@@ -253,6 +271,31 @@ def main() -> None:
         fail("main_model_strategy_tuning.csv missing columns: " + ", ".join(missing_tuning))
     if tuning["balanced_objective_score"].isna().all():
         fail("strategy tuning table must include at least one objective score")
+
+    feature_screen = pd.read_csv(FEATURE_SCREEN_PATH, encoding="utf-8-sig")
+    required_feature_screen_cols = {
+        "feature",
+        "selected",
+        "screening_score",
+        "stable_metric_count",
+        "stable_success",
+        "stable_return",
+        "stable_risk_filter",
+        "used_holdout_for_selection",
+    }
+    missing_feature_screen = sorted(required_feature_screen_cols - set(feature_screen.columns))
+    if missing_feature_screen:
+        fail("main_model_feature_screen.csv missing columns: " + ", ".join(missing_feature_screen))
+    selected = feature_screen[feature_screen["selected"].astype(str).str.lower().isin(["true", "1"])]
+    if selected.empty:
+        fail("feature screen must select at least one feature")
+    if len(selected) != int(decision["selected_feature_count"]):
+        fail("decision selected_feature_count must match feature screen selected rows")
+    holdout_used = selected["used_holdout_for_selection"].astype(str).str.lower().isin(["true", "1"]).any()
+    if holdout_used:
+        fail("selected features must not use holdout for selection")
+    if selected["stable_metric_count"].astype(float).le(0).any():
+        fail("selected features must have at least one stable train/development metric")
 
     print("OK: main model label contract passed")
     print(f"SCORES: {SCORES_PATH}")

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-02 23:56:18",
+  "generated_at": "2026-07-03 00:14:34",
   "data_latest_date": "2026-06-30",
   "diagnosis_status": "completed",
   "main_model_status": "not_promoted",
@@ -13,18 +13,18 @@
   },
   "evidence": [
     "Target contract: risk_adjusted_10d_success.",
-    "Holdout success rate 35.56%, below same-day market baseline 40.55%.",
-    "Holdout success lift -4.99%; development success lift 19.48%.",
-    "Integrated score high-low success delta 6.94%.",
-    "Success advantage head high-low success delta 4.95%.",
-    "Same-day advantage head high-low advantage delta 3.11%.",
-    "Same-day advantage head high-low soft target delta 3.93%.",
+    "Holdout success rate 22.52%, below same-day market baseline 38.83%.",
+    "Holdout success lift -16.31%; development success lift 16.93%.",
+    "Integrated score high-low success delta -6.63%.",
+    "Success advantage head high-low success delta 11.33%.",
+    "Same-day advantage head high-low advantage delta 15.78%.",
+    "Same-day advantage head high-low soft target delta 7.57%.",
     "Stable same-day return ranking feature count 9/10.",
-    "Raw same-day advantage Top3 return lift 2.30%.",
-    "Return-ranking probe holdout success lift -1.96%.",
-    "Same-day advantage contribution share inside integrated score 46.65%.",
-    "Selected weight development monthly stability 3/3; objective score 0.176313.",
-    "Risk head high-low failure delta 1.03%; risk separation is not the primary blocker."
+    "Raw same-day advantage Top3 return lift 3.40%.",
+    "Return-ranking probe holdout success lift -9.80%.",
+    "Same-day advantage contribution share inside integrated score 56.48%.",
+    "Selected weight development monthly stability 3/3; objective score 0.178333.",
+    "Risk head high-low failure delta 2.09%; risk separation is not the primary blocker."
   ],
   "blocked_from_formal_reason": "main model failed same-day success lift or formal ordering checks",
   "root_cause_summary": {
@@ -32,17 +32,17 @@
     "checked_same_day_return_features": 10,
     "stable_future_return_features": 10,
     "checked_future_return_features": 10,
-    "dev_advantage_target_delta": 0.12859766869354816,
-    "holdout_advantage_target_delta": 0.03932598294875206,
-    "raw_advantage_return_lift": 0.02303820187749578,
-    "integrated_return_lift": -0.0225470315588819,
-    "advantage_contribution_share": 0.4664929042025109,
+    "dev_advantage_target_delta": 0.13466337948469576,
+    "holdout_advantage_target_delta": 0.07567707485502068,
+    "raw_advantage_return_lift": 0.033987087189355225,
+    "integrated_return_lift": 0.0218182831749298,
+    "advantage_contribution_share": 0.5648126907932197,
     "selected_weight_stability_passed": true,
     "development_monthly_positive_months": 3,
     "development_monthly_total_months": 3,
-    "development_min_monthly_success_lift": 0.06719367588932806,
-    "development_min_monthly_return_lift": 0.025713075195669455,
-    "selected_weight_objective_score": 0.17631265780577274,
-    "negative_return_lift_months": 3
+    "development_min_monthly_success_lift": 0.15019762845849804,
+    "development_min_monthly_return_lift": 0.031881165272365425,
+    "selected_weight_objective_score": 0.1783334624875429,
+    "negative_return_lift_months": 1
   }
 }

@@ -38,6 +38,8 @@ DECISION_DIR = PROJECT_ROOT / "decision_layer"
 
 TRAINING_SPEC_PATH = MODEL_DIR / "main_model_training_spec.md"
 SCORES_PATH = MODEL_DIR / "main_model_scores.csv"
+FEATURE_SCREEN_PATH = VALIDATION_DIR / "main_model_feature_screen.csv"
+FEATURE_SIGNAL_PATH = VALIDATION_DIR / "data_learnability_feature_signal.csv"
 VALIDATION_SUMMARY_PATH = VALIDATION_DIR / "main_model_validation_summary.csv"
 CALIBRATION_PATH = VALIDATION_DIR / "main_model_calibration.csv"
 DECISION_MD_PATH = DECISION_DIR / "main_model_decision.md"
@@ -52,6 +54,9 @@ ADVERSE_THRESHOLD = -0.03
 RETURN_RANK_WINDOWS = [1, 3, 5, 10, 20]
 MA_RANK_WINDOWS = [5, 10, 20]
 SAME_DAY_ADVANTAGE_LOSS_WEIGHT = 3.0
+FEATURE_SCREEN_MIN_ABS_CORR = 0.01
+FEATURE_SCREEN_MAX_FEATURES = 48
+FEATURE_SCREEN_MIN_FEATURES = 12
 
 def fail(message: str) -> None:
     raise SystemExit(f"FAIL: {message}")
@@ -702,13 +707,106 @@ def build_training_frame(config: dict) -> tuple[pd.DataFrame, list[str]]:
     return add_relative_and_risk_labels(featured), feature_cols
 
 
+def corr_sign(value: float) -> int:
+    if pd.isna(value) or abs(float(value)) < 1e-12:
+        return 0
+    return 1 if float(value) > 0 else -1
+
+
+def train_dev_stable(row: pd.Series, metric: str) -> bool:
+    train_value = row.get(f"train_{metric}_corr")
+    dev_value = row.get(f"development_{metric}_corr")
+    train_sign = corr_sign(train_value)
+    dev_sign = corr_sign(dev_value)
+    if train_sign == 0 or train_sign != dev_sign:
+        return False
+    return min(abs(float(train_value)), abs(float(dev_value))) >= FEATURE_SCREEN_MIN_ABS_CORR
+
+
+def screen_feature_columns(feature_cols: list[str]) -> tuple[list[str], pd.DataFrame]:
+    if not FEATURE_SIGNAL_PATH.exists():
+        fail("data learnability feature signal is required before feature-screened retraining")
+    signal = pd.read_csv(FEATURE_SIGNAL_PATH, encoding="utf-8-sig")
+    required = {
+        "feature",
+        "train_success_corr",
+        "development_success_corr",
+        "train_return_corr",
+        "development_return_corr",
+        "train_risk_filter_corr",
+        "development_risk_filter_corr",
+    }
+    missing = required - set(signal.columns)
+    if missing:
+        fail("data_learnability_feature_signal.csv missing columns: " + ", ".join(sorted(missing)))
+    available = signal[signal["feature"].isin(feature_cols)].copy()
+    if available.empty:
+        fail("feature screen found no overlapping features")
+
+    rows: list[dict] = []
+    for _, row in available.iterrows():
+        stable_success = train_dev_stable(row, "success")
+        stable_return = train_dev_stable(row, "return")
+        stable_risk = train_dev_stable(row, "risk_filter")
+        stable_metric_count = int(stable_success) + int(stable_return) + int(stable_risk)
+        score = 0.0
+        for metric, stable in [
+            ("success", stable_success),
+            ("return", stable_return),
+            ("risk_filter", stable_risk),
+        ]:
+            if not stable:
+                continue
+            train_value = abs(float(row[f"train_{metric}_corr"]))
+            dev_value = abs(float(row[f"development_{metric}_corr"]))
+            score += dev_value + 0.5 * train_value
+        rows.append(
+            {
+                "feature": row["feature"],
+                "selected": False,
+                "screening_score": score,
+                "stable_metric_count": stable_metric_count,
+                "stable_success": stable_success,
+                "stable_return": stable_return,
+                "stable_risk_filter": stable_risk,
+                "used_holdout_for_selection": False,
+                "train_success_corr": row.get("train_success_corr"),
+                "development_success_corr": row.get("development_success_corr"),
+                "holdout_success_corr": row.get("holdout_success_corr"),
+                "train_return_corr": row.get("train_return_corr"),
+                "development_return_corr": row.get("development_return_corr"),
+                "holdout_return_corr": row.get("holdout_return_corr"),
+                "train_risk_filter_corr": row.get("train_risk_filter_corr"),
+                "development_risk_filter_corr": row.get("development_risk_filter_corr"),
+                "holdout_risk_filter_corr": row.get("holdout_risk_filter_corr"),
+            }
+        )
+    screen = pd.DataFrame(rows)
+    candidates = screen[screen["stable_metric_count"] > 0].copy()
+    if len(candidates) < FEATURE_SCREEN_MIN_FEATURES:
+        fail(
+            f"feature screen selected only {len(candidates)} candidates; "
+            f"minimum is {FEATURE_SCREEN_MIN_FEATURES}"
+        )
+    candidates = candidates.sort_values(
+        ["stable_metric_count", "screening_score"],
+        ascending=[False, False],
+    )
+    selected_features = candidates.head(FEATURE_SCREEN_MAX_FEATURES)["feature"].astype(str).tolist()
+    screen.loc[screen["feature"].isin(selected_features), "selected"] = True
+    screen = screen.sort_values(["selected", "stable_metric_count", "screening_score"], ascending=[False, False, False])
+    screen.to_csv(FEATURE_SCREEN_PATH, index=False, encoding="utf-8-sig")
+    return selected_features, screen
+
+
 def main() -> None:
     args = parse_args()
     config = load_json(CONFIG_PATH)
     plan = load_json(PLAN_PATH)
     validate_confirmation(args, plan)
 
-    frame, feature_cols = build_training_frame(config)
+    frame, all_feature_cols = build_training_frame(config)
+    feature_cols, feature_screen = screen_feature_columns(all_feature_cols)
     frame["split"] = split_name(frame["日期"], frame["label_complete"], config)
     usable = frame[(frame["label_complete"]) & (frame["has_full_20d_history"] == 1)].copy()
     scoring = frame[frame["has_full_20d_history"] == 1].copy()
@@ -836,7 +934,7 @@ def main() -> None:
     scoring["daily_rank"] = scoring.groupby("日期")["integrated_research_score"].rank(ascending=False, method="first")
     return_ranking_output_cols = [
         c
-        for c in feature_cols
+        for c in all_feature_cols
         if c.startswith("same_day_return_rank_")
         or c.startswith("industry_return_rank_")
         or c.startswith("industry_volume_rank_")
@@ -893,6 +991,11 @@ def main() -> None:
                 f"- Confirmed plan: `{CONFIRMED_PLAN_ID}`",
                 "- Data sources: three approved CSV inputs only.",
                 "- Model: one hidden-layer numpy MLP with four outputs.",
+                f"- Feature screen: selected {len(feature_cols)} of {len(all_feature_cols)} generated features.",
+                "- Feature screen source: `validation_layer/data_learnability_feature_signal.csv`.",
+                "- Feature screen uses train/development correlation stability only; holdout columns are audit-only.",
+                f"- Feature screen min absolute train/development correlation: {FEATURE_SCREEN_MIN_ABS_CORR}.",
+                f"- Feature screen max features: {FEATURE_SCREEN_MAX_FEATURES}.",
                 "- Training heads: selection_success, same_day_advantage soft target, failure_risk, episode_start.",
                 "- Formal target_success is risk-adjusted_10d_success.",
                 "- Risk-adjusted success: next-day open buy; +3% close must occur before any -3% low within 10 trading days.",
@@ -923,6 +1026,13 @@ def main() -> None:
         "status": status,
         "formal_approved": passed,
         "reason": reason,
+        "feature_screen_enabled": True,
+        "feature_screen_source": str(FEATURE_SIGNAL_PATH.relative_to(PROJECT_ROOT)),
+        "feature_screen_output": str(FEATURE_SCREEN_PATH.relative_to(PROJECT_ROOT)),
+        "feature_screen_uses_holdout_for_selection": False,
+        "original_feature_count": len(all_feature_cols),
+        "selected_feature_count": len(feature_cols),
+        "selected_feature_preview": feature_cols[:20],
         "selected_weights": list(weights),
         "selected_gate": gate,
         "training_loss_start": losses[0],
@@ -967,6 +1077,8 @@ def main() -> None:
                 f"- Formal approved: {passed}",
                 f"- Reason: {reason}",
                 f"- Training loss: {losses[0]:.6f} -> {losses[-1]:.6f}",
+                f"- Feature screen: selected {len(feature_cols)} of {len(all_feature_cols)} features",
+                "- Feature screen holdout usage: audit-only, not selection",
                 "- Target contract: risk_adjusted_10d_success",
                 f"- Holdout old +3% touch success rate: {fmt_pct(decision['holdout_old_target_success_rate'])}",
                 f"- Holdout risk-adjusted success rate: {fmt_pct(decision['holdout_risk_adjusted_success_rate'])}",

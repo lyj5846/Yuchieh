@@ -1,9 +1,14 @@
 # Main Model Training Spec
 
-- Generated: 2026-07-02 23:56:05
+- Generated: 2026-07-03 00:13:59
 - Confirmed plan: `risk_adjusted_main_model_training_plan`
 - Data sources: three approved CSV inputs only.
 - Model: one hidden-layer numpy MLP with four outputs.
+- Feature screen: selected 48 of 108 generated features.
+- Feature screen source: `validation_layer/data_learnability_feature_signal.csv`.
+- Feature screen uses train/development correlation stability only; holdout columns are audit-only.
+- Feature screen min absolute train/development correlation: 0.01.
+- Feature screen max features: 48.
 - Training heads: selection_success, same_day_advantage soft target, failure_risk, episode_start.
 - Formal target_success is risk-adjusted_10d_success.
 - Risk-adjusted success: next-day open buy; +3% close must occur before any -3% low within 10 trading days.
@@ -16,8 +21,8 @@
 - Development monthly stability requires most active months to have both success lift and return lift above zero.
 - Feature lookback: 20 trading days.
 - Episode gap: 10 trading days.
-- Selected weights: 1.2, 1.2, 0.2, 0.1
-- Selected gate: 1.1548964500427246
+- Selected weights: 1.0, 1.5, 0.0, 0.0
+- Selected gate: 1.3850385904312135
 - Selected development positive months: 3/3
-- Selected balanced objective score: 0.176313
+- Selected balanced objective score: 0.178333
 - Raw outputs are research ranking scores, not calibrated success rates.
