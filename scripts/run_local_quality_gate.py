@@ -41,6 +41,8 @@ def main() -> None:
         "scripts/check_historical_event_risk_backfill_collector.py",
         "scripts/run_historical_event_risk_backfill_coverage_review.py",
         "scripts/check_historical_event_risk_backfill_coverage_review.py",
+        "scripts/run_attention_disposition_feature_contract.py",
+        "scripts/check_attention_disposition_feature_contract.py",
         "scripts/check_target_redefinition_review.py",
         "scripts/check_architecture_contract.py",
         "scripts/validate_clean_project.py",
