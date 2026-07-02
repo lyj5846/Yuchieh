@@ -38,6 +38,7 @@ def main() -> None:
         "scripts/check_event_risk_calendar_collector.py",
         "scripts/run_event_risk_calendar_coverage_review.py",
         "scripts/check_event_risk_calendar_coverage_review.py",
+        "scripts/check_historical_event_risk_backfill_collector.py",
         "scripts/check_target_redefinition_review.py",
         "scripts/check_architecture_contract.py",
         "scripts/validate_clean_project.py",

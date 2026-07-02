@@ -1,0 +1,15 @@
+{
+  "status": "historical_backfill_output_ready",
+  "recommended_next_step": "review_historical_event_risk_backfill_coverage",
+  "output_path": "inputs\\event_risk_calendar_backfilled.csv",
+  "rows": 3895,
+  "split_event_rows": {
+    "train": 2304,
+    "development": 542,
+    "holdout": 1049
+  },
+  "new_input_not_enabled": true,
+  "do_not_retrain_yet": true,
+  "formal_outputs_unchanged": true,
+  "known_limitation": "TWSE attention/disposition historical rows are backfilled; material information, TPEx attention/disposition, and ex-dividend historical backfill still need separate source work."
+}

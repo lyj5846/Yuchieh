@@ -1,0 +1,4 @@
+﻿source_name,source_url,query_granularity,raw_rows,kept_events,status,error
+TWSE historical attention,https://www.twse.com.tw/rwd/zh/announcement/notice,monthly,10170,3689,ok,
+TWSE historical disposition,https://www.twse.com.tw/rwd/zh/announcement/punish,monthly,366,86,partial_error,2025-09-01..2025-09-30: HTTP Error 307: Temporary Redirect | 2025-10-01..2025-10-31: HTTP Error 307: Temporary Redirect | 2025-11-01..2025-11-30: HTTP Error 307: Temporary Redirect | 2025-12-01..2025-12-31: HTTP Error 307: Temporary Redirect | 2026-01-01..2026-01-31: HTTP Error 307: Temporary Redirect
+current official OpenAPI snapshot,inputs\event_risk_calendar.csv,snapshot,145,145,ok,
