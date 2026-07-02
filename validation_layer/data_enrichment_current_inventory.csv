@@ -1,0 +1,7 @@
+﻿current_data_group,source,required_columns,present_columns,missing_columns,coverage_rate
+price_volume,stock_daily_all,開盤價 | 最高價 | 最低價 | 收盤價 | 成交量(張),開盤價 | 最高價 | 最低價 | 收盤價 | 成交量(張),,1.0
+institutional_daily,stock_daily_all,外資買賣超(張) | 投信買賣超(張) | 自營商買賣超(張) | 三大法人合計買賣超(張),外資買賣超(張) | 投信買賣超(張) | 自營商買賣超(張) | 三大法人合計買賣超(張),,1.0
+margin_short_daily,stock_daily_all,融資買進 | 融資賣出 | 融資增減 | 融資餘額 | 融券買進 | 融券賣出 | 融券增減 | 融券餘額,融資買進 | 融資賣出 | 融資增減 | 融資餘額 | 融券買進 | 融券賣出 | 融券增減 | 融券餘額,,1.0
+day_trade_daily,stock_daily_all,當沖成交量(張) | 當沖比率,當沖成交量(張) | 當沖比率,,1.0
+market_state_daily,market_daily,加權指數收盤 | 電子指數收盤 | 櫃買指數收盤 | 上漲家數 | 下跌家數 | 漲停家數 | 跌停家數,加權指數收盤 | 電子指數收盤 | 櫃買指數收盤 | 上漲家數 | 下跌家數 | 漲停家數 | 跌停家數,,1.0
+static_theme,theme_group,股票代號 | 股票名稱 | 主分類 | 子分類,股票代號 | 股票名稱 | 主分類 | 子分類,,1.0
