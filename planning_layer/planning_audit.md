@@ -1,28 +1,21 @@
 # Planning Audit
 
-- Generated: 2026-07-02 18:08:26
-- Data latest date: 2026-06-30
-- Recommended experiment: `single_main_model_training_plan`
-- Planning output writes only to `planning_layer`.
-- Research outputs were intentionally not used as decision inputs.
-- Formal output was intentionally not written.
+- Generated: 2026-07-02 23:40:00
+- Used source: `docs/issues/0001-redefine-return-target.md`
+- Used source: `validation_layer/main_model_failure_diagnosis.md`
+- Used source: `project_config.json`
+- Did not use: old reports, old model scores, manual conclusions, or research branches as decision sources.
 
-## Sources Used
+## Recommendation
 
-- `docs\architecture_contract.md`
-- `docs\ai_self_learning_contract.md`
-- `label_layer\label_contract.md`
-- `feature_layer\feature_contract.md`
-- `model_layer\main_model_contract.md`
-- `validation_layer\validation_contract.md`
-- `decision_layer\main_pipeline_decision.md`
+Recommend `risk_adjusted_10d_target_plan`.
 
-## Sources Not Used
+Reason:
 
-- `research_layer`: preserved as research history only.
-- `formal_layer`: not modified by planning.
+- The current target can count trades as successful even if the path was poor.
+- The model now has some return-ranking signal, but success lift still loses to same-day market.
+- A risk-adjusted target keeps the user's 10-day +3% concept while adding a path-quality requirement.
 
-## Candidate Count
+## Boundary
 
-- 3 candidate experiments generated.
-- 1 recommended experiment selected.
+This planning output does not train a model, select stocks, update formal files, or call any research score a probability.
