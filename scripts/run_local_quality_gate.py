@@ -29,6 +29,8 @@ def main() -> None:
         "scripts/check_main_model_failure_diagnosis.py",
         "scripts/run_data_learnability_review.py",
         "scripts/check_data_learnability_review.py",
+        "scripts/run_target_sensitivity_review.py",
+        "scripts/check_target_sensitivity_review.py",
         "scripts/check_target_redefinition_review.py",
         "scripts/check_architecture_contract.py",
         "scripts/validate_clean_project.py",
