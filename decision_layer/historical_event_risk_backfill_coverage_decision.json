@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-07-03 07:15:14",
+  "status": "coverage_ready_for_limited_attention_disposition_features",
+  "recommended_next_step": "prepare_limited_attention_disposition_feature_contract",
+  "reason": "資料跨 train/development/holdout 已足夠，但事件高度集中於 TWSE 注意/處置；只能先做有限風險特徵，不能宣稱完整事件風險。",
+  "allowed_scope": "attention_disposition_only",
+  "event_rows_total": 3780,
+  "event_rows_raw_total": 3895,
+  "future_event_rows_excluded_from_coverage": 115,
+  "attention_rows": 3689,
+  "disposition_rows": 80,
+  "attention_disposition_rows": 3769,
+  "other_event_rows": 11,
+  "top_event_type": "attention",
+  "top_event_type_share": 0.975925925925926,
+  "top_source_name": "TWSE historical attention",
+  "top_source_share": 0.975925925925926,
+  "split_ready": true,
+  "complete_event_ready": false,
+  "new_input_not_enabled": true,
+  "do_not_retrain_yet": true,
+  "formal_outputs_unchanged": true
+}

@@ -1,0 +1,4 @@
+﻿event_type,event_rows,event_row_share,event_stock_count,first_signal_usable_date,last_signal_usable_date
+attention,3689,0.975925925925926,168,2024-01-02,2026-06-30
+disposition,80,0.021164021164021163,51,2024-02-16,2026-06-29
+ex_dividend,11,0.00291005291005291,11,2026-06-23,2026-06-30
