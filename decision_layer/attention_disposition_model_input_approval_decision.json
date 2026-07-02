@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-07-03 07:54:23",
+  "status": "attention_disposition_candidate_model_input_approved",
+  "recommended_next_step": "wire_attention_disposition_features_into_main_training_pipeline",
+  "candidate_input_key": "attention_disposition_events",
+  "candidate_input_path": "C:\\Users\\林裕傑\\Documents\\stock_ai_probability_v2\\inputs\\event_risk_calendar_backfilled.csv",
+  "allowed_scope": "attention_disposition_only",
+  "approved_feature_count": 7,
+  "approved_features": [
+    "attention_disposition_known_count_1d",
+    "attention_disposition_known_count_3d",
+    "attention_disposition_known_count_10d",
+    "attention_active_on_signal_date",
+    "disposition_active_on_signal_date",
+    "days_since_last_attention_disposition",
+    "has_attention_disposition_history_20d"
+  ],
+  "core_allowed_inputs_unchanged": true,
+  "model_training_executed": false,
+  "formal_outputs_unchanged": true,
+  "may_be_used_by_next_training_pipeline": true,
+  "still_requires_holdout_validation_before_formal_output": true
+}

@@ -5,6 +5,14 @@
     "market_daily": "C:\\Users\\林裕傑\\Documents\\Codex\\2026-05-29\\const-config-2449-b1-stock-sheet\\market_daily.csv",
     "theme_group": "C:\\Users\\林裕傑\\Documents\\stock_ai_probability_v2\\inputs\\user_theme_group_v2_2026-06-16.csv"
   },
+  "candidate_model_feature_inputs": {
+    "attention_disposition_events": {
+      "path": "C:\\Users\\林裕傑\\Documents\\stock_ai_probability_v2\\inputs\\event_risk_calendar_backfilled.csv",
+      "status": "approved_for_next_training_candidate",
+      "scope": "attention_disposition_only",
+      "approval_decision": "decision_layer\\attention_disposition_model_input_approval_decision.json"
+    }
+  },
   "forbidden_path_fragments": [
     "model_layer_",
     "radar",
