@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-07-03 00:47:40",
+  "status": "coverage_not_training_ready",
+  "recommended_next_step": "build_historical_event_risk_backfill_collector",
+  "reason": "目前事件資料只是官方 API 快照，主要落在最近日期，train/development 幾乎沒有覆蓋；不能拿去重訓。",
+  "event_rows_total": 145,
+  "event_rows_usable_by_market_latest": 30,
+  "event_first_signal_usable_date": "2026-06-16",
+  "event_last_signal_usable_date": "2026-06-30",
+  "market_start_date": "2024-01-02",
+  "market_latest_date": "2026-06-30",
+  "total_trading_days": 601,
+  "event_trading_days": 10,
+  "overall_event_day_coverage_rate": 0.016638935108153077,
+  "stock_universe_count": 254,
+  "event_stock_count": 30,
+  "event_stock_coverage_rate": 0.11811023622047244,
+  "split_metrics": [
+    {
+      "split": "train",
+      "start_date": "2024-01-02",
+      "end_date": "2025-12-31",
+      "trading_days": 485,
+      "event_rows": 0,
+      "event_trading_days": 0,
+      "event_stock_count": 0,
+      "event_day_coverage_rate": 0.0
+    },
+    {
+      "split": "development",
+      "start_date": "2026-01-02",
+      "end_date": "2026-03-31",
+      "trading_days": 55,
+      "event_rows": 0,
+      "event_trading_days": 0,
+      "event_stock_count": 0,
+      "event_day_coverage_rate": 0.0
+    },
+    {
+      "split": "holdout",
+      "start_date": "2026-04-01",
+      "end_date": "2026-06-30",
+      "trading_days": 61,
+      "event_rows": 30,
+      "event_trading_days": 10,
+      "event_stock_count": 30,
+      "event_day_coverage_rate": 0.16393442622950818
+    }
+  ],
+  "new_input_not_enabled": true,
+  "do_not_retrain_yet": true,
+  "formal_outputs_unchanged": true
+}
