@@ -21,11 +21,13 @@ def main() -> None:
     scripts = sorted(str(path.relative_to(PROJECT_ROOT)) for path in (PROJECT_ROOT / "scripts").glob("*.py"))
     run([python, "-m", "py_compile", *scripts])
     for script in [
+        "scripts/run_target_redefinition_review.py",
         "scripts/check_github_governance.py",
         "scripts/check_repository_static_contract.py",
         "scripts/check_planning_contract.py",
         "scripts/check_main_model_label_contract.py",
         "scripts/check_main_model_failure_diagnosis.py",
+        "scripts/check_target_redefinition_review.py",
         "scripts/check_architecture_contract.py",
         "scripts/validate_clean_project.py",
         "scripts/check_github_connection.py",
