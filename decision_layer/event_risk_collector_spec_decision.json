@@ -1,0 +1,26 @@
+{
+  "status": "collector_spec_ready",
+  "recommended_next_step": "implement_event_risk_calendar_collector",
+  "data_need_id": "event_risk_calendar",
+  "proposed_future_input": "inputs/event_risk_calendar.csv",
+  "source_decision_status": "data_gap_confirmed",
+  "source_decision_next_step": "build_event_risk_data_collector_spec",
+  "do_not_retrain_yet": true,
+  "formal_outputs_unchanged": true,
+  "required_timestamp_fields": [
+    "announcement_datetime",
+    "signal_usable_date",
+    "known_before_signal_close",
+    "post_close_pre_next_open"
+  ],
+  "required_event_types": [
+    "material_info",
+    "suspension",
+    "resumption",
+    "attention",
+    "disposition",
+    "investor_meeting",
+    "ex_dividend",
+    "corporate_action"
+  ]
+}

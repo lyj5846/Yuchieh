@@ -1,0 +1,15 @@
+﻿field_name,field_type,required,description,example,no_leakage_rule
+stock_id,string,yes,"Taiwan stock code, normalized to text.",2449,Identifier only; no timing risk.
+stock_name,string,yes,Stock name from the event source or mapped from the approved theme file.,京元電子,Name only; no timing risk.
+event_type,enum,yes,"Mechanical event class: material_info, suspension, resumption, attention, disposition, investor_meeting, ex_dividend, corporate_action.",attention,Use source category as published; do not rewrite it as a human opinion.
+event_subtype,string,no,More detailed source subtype when available.,處置期間延長,Use only the published subtype visible at the source timestamp.
+event_title,string,yes,Original event title or brief source text.,公告本公司召開法說會,Store the source text; do not summarize with future price knowledge.
+source_name,string,yes,"Source family name, such as exchange notice, public disclosure, or company event feed.",TWSE attention notice,Source metadata only.
+source_url,string,no,Source URL or stable reference when available.,https://example.invalid/source,"URL must point to the source item, not to a later news explanation."
+announcement_datetime,datetime,yes,The first public timestamp when the event was known.,2026-06-15 13:20:00,This is the main anti-leakage field; missing timestamps cannot enter training.
+event_effective_start_date,date,no,"Date when the event starts to apply, such as disposition start date.",2026-06-16,"Can be later than announcement date, but feature availability is still controlled by announcement_datetime."
+event_effective_end_date,date,no,Date when the event stops applying.,2026-06-24,Can only be used after the original announcement is known.
+signal_usable_date,date,yes,First signal date on which this event can be used under the strict close-time rule.,2026-06-15,"If announced after signal close, usable date moves to the next trading day unless the decision-time contract is changed."
+known_before_signal_close,boolean,yes,Whether the event was publicly known by the signal day's close.,true,Only true rows may become main model features under the current contract.
+post_close_pre_next_open,boolean,yes,Whether the event was known after close but before next open.,false,Store separately; do not use in the main model unless the decision-time contract is explicitly revised.
+raw_payload_hash,string,no,Hash of raw downloaded payload for audit and de-duplication.,sha256:...,Audit only; not a model feature.
