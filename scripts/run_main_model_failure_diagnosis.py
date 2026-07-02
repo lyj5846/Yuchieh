@@ -48,8 +48,6 @@ DIAGNOSIS_CSV_PATH = VALIDATION_DIR / "main_model_failure_diagnosis.csv"
 RECOMMENDATION_PATH = VALIDATION_DIR / "main_model_repair_recommendation.json"
 
 EPISODE_GAP_DAYS = 10
-CURRENT_BENCHMARK_SUCCESS_RATE = 0.7962962962962963
-
 
 def fail(message: str) -> None:
     raise SystemExit(f"FAIL: {message}")
@@ -873,7 +871,15 @@ def main() -> None:
     )
 
     raw_advantage_return_lift = float(raw_advantage_summary["return_lift"])
-    if advantage_target_delta <= 0 or raw_advantage_return_lift <= 0:
+    target_contract = str(decision.get("target_contract", ""))
+    formal_approved = bool(decision.get("formal_approved", False))
+    if formal_approved:
+        recommended_repair_id = "ready_for_formal_review"
+        recommendation_summary = "風險調整目標主模型已通過訓練驗證；下一步只能由正式入口決定是否更新候選。"
+    elif target_contract == "risk_adjusted_10d_success":
+        recommended_repair_id = "review_target_or_data_sufficiency"
+        recommendation_summary = "風險調整目標重訓後仍未通過正式驗證；不要再補權重或新增分支，下一步應檢討目前三份資料是否足以支撐此交易目標。"
+    elif advantage_target_delta <= 0 or raw_advantage_return_lift <= 0:
         recommended_repair_id = "redefine_return_target"
         recommendation_summary = (
             "return-ranking probe 仍未通過；同日報酬排序目標目前無法由現有特徵穩定學出來。"
@@ -905,6 +911,7 @@ def main() -> None:
     else:
         head_result_line = "- 同日報酬排序 head 在 holdout 仍未站穩，代表目前報酬排序目標仍無法穩定泛化。"
     evidence = [
+        f"Target contract: {target_contract or 'legacy_target_success'}.",
         f"Holdout success rate {format_pct(float(holdout_row['success_rate']))}, {market_relation} same-day market baseline {format_pct(float(holdout_row['same_day_baseline_success_rate']))}.",
         f"Holdout success lift {format_pct(holdout_lift)}; development success lift {format_pct(dev_lift)}.",
         f"Integrated score high-low success delta {format_pct(integrated_delta)}.",
@@ -934,7 +941,9 @@ def main() -> None:
         "formal_outputs_unchanged": True,
         "formal_hashes": formal_hashes,
         "evidence": evidence,
-        "blocked_from_formal_reason": "main model failed same-day success lift or formal ordering checks",
+        "blocked_from_formal_reason": (
+            "formal entrypoint has not run" if formal_approved else "main model failed same-day success lift or formal ordering checks"
+        ),
         "root_cause_summary": {
             "stable_same_day_return_features": same_day_stable_features,
             "checked_same_day_return_features": same_day_checked_features,
@@ -969,7 +978,11 @@ def main() -> None:
         "",
         "## 結論",
         "",
-        "主模型沒有升正式，原因不是訓練沒有跑，而是 holdout 沒有同時通過成功率優勢、風險排序與正式驗證檢查。",
+        (
+            "主模型已通過訓練驗證；但正式輸出仍只能由 `scripts/run_main_pipeline.py` 決定。"
+            if formal_approved
+            else "主模型沒有升正式，原因不是訓練沒有跑，而是 holdout 沒有同時通過成功率優勢、風險排序與正式驗證檢查。"
+        ),
         "",
         f"唯一建議: `{recommended_repair_id}`",
         "",

@@ -43,15 +43,15 @@ CALIBRATION_PATH = VALIDATION_DIR / "main_model_calibration.csv"
 DECISION_MD_PATH = DECISION_DIR / "main_model_decision.md"
 DECISION_JSON_PATH = DECISION_DIR / "main_model_decision.json"
 
-CONFIRMED_PLAN_ID = "single_main_model_training_plan"
+CONFIRMED_PLAN_ID = "risk_adjusted_main_model_training_plan"
 LOOKBACK_DAYS = 20
 EPISODE_GAP_DAYS = 10
+LOOKAHEAD_DAYS = 10
+PROFIT_THRESHOLD = 0.03
+ADVERSE_THRESHOLD = -0.03
 RETURN_RANK_WINDOWS = [1, 3, 5, 10, 20]
 MA_RANK_WINDOWS = [5, 10, 20]
 SAME_DAY_ADVANTAGE_LOSS_WEIGHT = 3.0
-CURRENT_BENCHMARK_DAYS = 36
-CURRENT_BENCHMARK_SUCCESS_RATE = 0.7962962962962963
-
 
 def fail(message: str) -> None:
     raise SystemExit(f"FAIL: {message}")
@@ -59,7 +59,7 @@ def fail(message: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train the single integrated main model.")
-    parser.add_argument("--confirmed-plan", required=True, help="Must be single_main_model_training_plan.")
+    parser.add_argument("--confirmed-plan", required=True, help=f"Must be {CONFIRMED_PLAN_ID}.")
     return parser.parse_args()
 
 
@@ -134,33 +134,82 @@ def normalize_theme(theme: pd.DataFrame) -> pd.DataFrame:
     return out[keep].drop_duplicates("股票代號", keep="last")
 
 
+def first_hit_day(values: pd.DataFrame, threshold: float, direction: str) -> pd.Series:
+    if direction == "ge":
+        hits = values.ge(threshold)
+    elif direction == "le":
+        hits = values.le(threshold)
+    else:
+        fail(f"unsupported hit direction: {direction}")
+    hit_matrix = hits.to_numpy(dtype=bool)
+    first = np.full(hit_matrix.shape[0], np.nan, dtype=float)
+    has_hit = hit_matrix.any(axis=1)
+    first[has_hit] = np.argmax(hit_matrix[has_hit], axis=1) + 1
+    return pd.Series(first, index=values.index)
+
+
 def add_labels(stock: pd.DataFrame) -> pd.DataFrame:
     out = stock.sort_values(["股票代號", "日期"]).copy()
     group = out.groupby("股票代號", sort=False)
     out["stock_trading_index"] = group.cumcount()
     out["buy_open_next"] = group["開盤價"].shift(-1)
-    future_closes = pd.concat([group["收盤價"].shift(-i) for i in range(1, 11)], axis=1)
-    future_closes.columns = [f"future_close_{i}" for i in range(1, 11)]
+    future_closes = pd.concat([group["收盤價"].shift(-i) for i in range(1, LOOKAHEAD_DAYS + 1)], axis=1)
+    future_lows = pd.concat([group["最低價"].shift(-i) for i in range(1, LOOKAHEAD_DAYS + 1)], axis=1)
+    future_closes.columns = [f"future_close_{i}" for i in range(1, LOOKAHEAD_DAYS + 1)]
+    future_lows.columns = [f"future_low_{i}" for i in range(1, LOOKAHEAD_DAYS + 1)]
     out["future_window_count"] = future_closes.notna().sum(axis=1)
+    out["future_low_window_count"] = future_lows.notna().sum(axis=1)
     out["label_complete"] = (
-        (out["future_window_count"] == 10)
+        (out["future_window_count"] == LOOKAHEAD_DAYS)
+        & (out["future_low_window_count"] == LOOKAHEAD_DAYS)
         & out["buy_open_next"].notna()
         & (out["buy_open_next"] > 0)
     )
+    close_returns = future_closes.div(out["buy_open_next"], axis=0) - 1.0
+    low_returns = future_lows.div(out["buy_open_next"], axis=0) - 1.0
+    close_returns = close_returns.replace([np.inf, -np.inf], np.nan)
+    low_returns = low_returns.replace([np.inf, -np.inf], np.nan)
     out["future_10d_high_close"] = future_closes.max(axis=1)
-    out["future_10d_low_close"] = future_closes.min(axis=1)
-    out["future_10d_high_close_return"] = out["future_10d_high_close"] / out["buy_open_next"] - 1.0
-    out["future_10d_low_close_return"] = out["future_10d_low_close"] / out["buy_open_next"] - 1.0
-    out["future_10d_high_close_return"] = out["future_10d_high_close_return"].replace([np.inf, -np.inf], np.nan)
-    out["future_10d_low_close_return"] = out["future_10d_low_close_return"].replace([np.inf, -np.inf], np.nan)
+    out["future_10d_low_price"] = future_lows.min(axis=1)
+    out["future_10d_high_close_return"] = close_returns.max(axis=1)
+    out["future_10d_low_close_return"] = low_returns.min(axis=1)
+    out["max_adverse_return"] = out["future_10d_low_close_return"]
+    out["future_10d_day10_close_return"] = close_returns.iloc[:, -1]
     out["label_complete"] = (
         out["label_complete"]
         & out["future_10d_high_close_return"].notna()
         & out["future_10d_low_close_return"].notna()
     )
-    out["target_success"] = (
-        out["label_complete"] & (out["future_10d_high_close_return"] >= 0.03)
+    out["old_target_success"] = (
+        out["label_complete"] & (out["future_10d_high_close_return"] >= PROFIT_THRESHOLD)
     ).astype(int)
+    out["profit_event_day"] = first_hit_day(close_returns, PROFIT_THRESHOLD, "ge")
+    out["adverse_event_day"] = first_hit_day(low_returns, ADVERSE_THRESHOLD, "le")
+    has_profit = out["profit_event_day"].notna()
+    has_adverse = out["adverse_event_day"].notna()
+    profit_first = has_profit & (~has_adverse | (out["profit_event_day"] < out["adverse_event_day"]))
+    adverse_first = has_adverse & (~has_profit | (out["adverse_event_day"] <= out["profit_event_day"]))
+    out["first_event_day"] = np.nan
+    out.loc[profit_first, "first_event_day"] = out.loc[profit_first, "profit_event_day"]
+    out.loc[adverse_first, "first_event_day"] = out.loc[adverse_first, "adverse_event_day"]
+    out["first_event_type"] = "none"
+    out.loc[profit_first, "first_event_type"] = "profit_first"
+    out.loc[adverse_first, "first_event_type"] = "adverse_first"
+    out["same_day_both_event"] = (
+        out["label_complete"]
+        & has_profit
+        & has_adverse
+        & out["profit_event_day"].eq(out["adverse_event_day"])
+    ).astype(int)
+    out["risk_adjusted_10d_success"] = (out["label_complete"] & profit_first).astype(int)
+    out["target_success"] = out["risk_adjusted_10d_success"].astype(int)
+    out["old_success_but_risk_failed"] = (
+        (out["old_target_success"] == 1) & (out["target_success"] == 0)
+    ).astype(int)
+    out["realized_10d_trade_return"] = out["future_10d_day10_close_return"]
+    out.loc[profit_first, "realized_10d_trade_return"] = PROFIT_THRESHOLD
+    out.loc[adverse_first, "realized_10d_trade_return"] = ADVERSE_THRESHOLD
+    out.loc[~out["label_complete"], "realized_10d_trade_return"] = np.nan
     return out
 
 
@@ -713,16 +762,16 @@ def main() -> None:
         summary_row(holdout, holdout_probe_picked, "holdout", "return_ranking_probe_top3", None),
         {
             "split": "holdout",
-            "strategy": "current_benchmark",
+            "strategy": "risk_adjusted_market_baseline",
             "gate": "",
-            "rows": "",
-            "days": CURRENT_BENCHMARK_DAYS,
-            "success_rate": CURRENT_BENCHMARK_SUCCESS_RATE,
+            "rows": len(holdout),
+            "days": holdout["日期"].nunique(),
+            "success_rate": holdout.groupby("日期")["target_success"].mean().mean(),
             "same_day_baseline_success_rate": "",
-            "success_lift": "",
-            "avg_10d_high_close_return": "",
+            "success_lift": 0.0,
+            "avg_10d_high_close_return": holdout.groupby("日期")["future_10d_high_close_return"].mean().mean(),
             "same_day_baseline_avg_return": "",
-            "return_lift": "",
+            "return_lift": 0.0,
             "top_stock_share": "",
             "top_industry_share": "",
         },
@@ -759,8 +808,7 @@ def main() -> None:
     holdout_probe_row = validation[validation["strategy"].eq("return_ranking_probe_top3") & validation["split"].eq("holdout")].iloc[0]
     active_months = holdout_picked["日期"].dt.strftime("%Y-%m").nunique() if not holdout_picked.empty else 0
     passed = bool(
-        holdout_row["success_rate"] >= CURRENT_BENCHMARK_SUCCESS_RATE - 0.03
-        and holdout_row["success_lift"] > 0
+        holdout_row["success_lift"] > 0
         and holdout_row["return_lift"] > 0
         and score_order_ok
         and advantage_order_ok
@@ -810,6 +858,9 @@ def main() -> None:
         "risk_head",
         "episode_head",
         "target_success",
+        "risk_adjusted_10d_success",
+        "old_target_success",
+        "old_success_but_risk_failed",
         "selection_success_label",
         "same_day_advantage_label",
         "same_day_advantage_target",
@@ -818,6 +869,14 @@ def main() -> None:
         "relative_top20_label",
         "episode_start_label",
         "future_10d_high_close_return",
+        "future_10d_low_close_return",
+        "max_adverse_return",
+        "profit_event_day",
+        "adverse_event_day",
+        "first_event_day",
+        "first_event_type",
+        "same_day_both_event",
+        "realized_10d_trade_return",
         "daily_market_success_rate",
         "daily_market_avg_return",
     ]
@@ -835,12 +894,15 @@ def main() -> None:
                 "- Data sources: three approved CSV inputs only.",
                 "- Model: one hidden-layer numpy MLP with four outputs.",
                 "- Training heads: selection_success, same_day_advantage soft target, failure_risk, episode_start.",
+                "- Formal target_success is risk-adjusted_10d_success.",
+                "- Risk-adjusted success: next-day open buy; +3% close must occur before any -3% low within 10 trading days.",
+                "- Conservative tie rule: if +3% close and -3% low occur on the same day, target_success is failure.",
+                "- Old +3% touch target is retained as old_target_success for comparison only.",
                 "- Same-day advantage soft target: pure same-day return percentile.",
                 "- Uses same-day relative return-ranking features against all stocks, same industry, and market indices.",
                 f"- same_day_advantage loss weight: {SAME_DAY_ADVANTAGE_LOSS_WEIGHT}.",
                 "- Strategy tuning: selected on development with monthly stability and a balanced success/return objective.",
                 "- Development monthly stability requires most active months to have both success lift and return lift above zero.",
-                "- Formal target_success is unchanged: next-day open buy, any close within 10 trading days reaches +3%.",
                 f"- Feature lookback: {LOOKBACK_DAYS} trading days.",
                 f"- Episode gap: {EPISODE_GAP_DAYS} trading days.",
                 f"- Selected weights: {', '.join(str(v) for v in weights)}",
@@ -857,6 +919,7 @@ def main() -> None:
     decision = {
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "confirmed_plan": CONFIRMED_PLAN_ID,
+        "target_contract": "risk_adjusted_10d_success",
         "status": status,
         "formal_approved": passed,
         "reason": reason,
@@ -867,6 +930,15 @@ def main() -> None:
         "holdout_success_rate": float(holdout_row["success_rate"]) if not pd.isna(holdout_row["success_rate"]) else None,
         "holdout_success_lift": float(holdout_row["success_lift"]) if not pd.isna(holdout_row["success_lift"]) else None,
         "holdout_return_lift": float(holdout_row["return_lift"]) if not pd.isna(holdout_row["return_lift"]) else None,
+        "holdout_old_target_success_rate": float(holdout["old_target_success"].mean()) if not holdout.empty else None,
+        "holdout_risk_adjusted_success_rate": float(holdout["target_success"].mean()) if not holdout.empty else None,
+        "holdout_old_success_but_risk_failed_rate": float(holdout["old_success_but_risk_failed"].mean()) if not holdout.empty else None,
+        "holdout_old_success_but_risk_failed_count": int(holdout["old_success_but_risk_failed"].sum()) if not holdout.empty else 0,
+        "holdout_old_success_but_risk_failed_among_old_success": (
+            float(holdout["old_success_but_risk_failed"].sum() / holdout["old_target_success"].sum())
+            if not holdout.empty and int(holdout["old_target_success"].sum()) > 0
+            else None
+        ),
         "holdout_return_ranking_probe_success_lift": float(holdout_probe_row["success_lift"]) if not pd.isna(holdout_probe_row["success_lift"]) else None,
         "holdout_return_ranking_probe_return_lift": float(holdout_probe_row["return_lift"]) if not pd.isna(holdout_probe_row["return_lift"]) else None,
         "score_order_ok": score_order_ok,
@@ -895,6 +967,11 @@ def main() -> None:
                 f"- Formal approved: {passed}",
                 f"- Reason: {reason}",
                 f"- Training loss: {losses[0]:.6f} -> {losses[-1]:.6f}",
+                "- Target contract: risk_adjusted_10d_success",
+                f"- Holdout old +3% touch success rate: {fmt_pct(decision['holdout_old_target_success_rate'])}",
+                f"- Holdout risk-adjusted success rate: {fmt_pct(decision['holdout_risk_adjusted_success_rate'])}",
+                f"- Holdout old successes filtered by risk rule among all rows: {fmt_pct(decision['holdout_old_success_but_risk_failed_rate'])}",
+                f"- Holdout old successes filtered by risk rule among old successes: {fmt_pct(decision['holdout_old_success_but_risk_failed_among_old_success'])}",
                 f"- Holdout success rate: {fmt_pct(decision['holdout_success_rate'])}",
                 f"- Holdout success lift: {fmt_pct(decision['holdout_success_lift'])}",
                 f"- Holdout return lift: {fmt_pct(decision['holdout_return_lift'])}",

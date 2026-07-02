@@ -104,11 +104,12 @@ def build_plan(config: dict, data_latest_date: str) -> dict:
     allowed_inputs = list(config["allowed_inputs"].keys())
     candidates = [
         {
-            "id": "single_main_model_training_plan",
-            "hypothesis": "A single integrated model route can reduce branch confusion by learning success, risk, relative advantage, and episode start inside one training plan.",
-            "why_now": "The architecture is clean, but the main route has not yet been trained through the new planning and validation contract.",
+            "id": "risk_adjusted_main_model_training_plan",
+            "hypothesis": "The single integrated deep-learning route should train on risk_adjusted_10d_success so it learns clean +3% trades, not old +3% touches that first hit -3% adverse risk.",
+            "why_now": "The target redefinition review found enough samples and showed many old successes fail the adverse-first rule, so the next step is retraining the existing main model against the cleaner target.",
             "target_label": [
-                "10_day_success",
+                "risk_adjusted_10d_success",
+                "old_target_success_comparison",
                 "failure_risk",
                 "same_day_relative_advantage",
                 "episode_start",
@@ -118,10 +119,12 @@ def build_plan(config: dict, data_latest_date: str) -> dict:
                 "Create signal-day features from stock price, volume, institution, margin, day-trade, market, and theme data.",
                 "Use only data known on or before the signal day.",
                 "Keep theme data as a categorical feature or validation group only.",
+                "Use future prices only in the label layer to identify +3% close before -3% low.",
             ],
             "model_changes": [
-                "Train one integrated main model route in the main model layer.",
+                "Retrain the existing one hidden-layer numpy MLP route in the main model layer.",
                 "Keep raw outputs as research ranking scores until calibration passes.",
+                "Keep old_target_success only as a comparison field.",
                 "Produce at most Top 3 candidates only after validation accepts the route.",
             ],
             "validation_checks": [
@@ -151,7 +154,7 @@ def build_plan(config: dict, data_latest_date: str) -> dict:
                 "main_model_decision.md",
             ],
             "risk_notes": [
-                "This is the broadest plan, so it must be implemented behind validation gates.",
+                "The stricter target will lower raw success rate; compare against the new same-day baseline, not the old touch target.",
                 "Do not expose raw scores as success rates.",
             ],
         },
@@ -244,8 +247,8 @@ def build_plan(config: dict, data_latest_date: str) -> dict:
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "data_latest_date": data_latest_date,
         "planning_status": "waiting_for_user_confirmation",
-        "problem_statement": "The project has a clean architecture and formal entrypoint, but no single trained main model has been accepted under the new contract.",
-        "recommended_experiment_id": "single_main_model_training_plan",
+        "problem_statement": "The target review found the old +3% touch target is too broad. The next step is retraining the single deep-learning main model on the risk-adjusted success label.",
+        "recommended_experiment_id": "risk_adjusted_main_model_training_plan",
         "confirmation_required": True,
         "experiment_candidates": candidates,
     }
@@ -301,7 +304,7 @@ def write_plan_markdown(plan: dict) -> None:
         f"- Hypothesis: {recommended['hypothesis']}",
         f"- Why now: {recommended['why_now']}",
         "",
-        "This is recommended because it turns the current clean architecture into one trainable main route. The other candidates are useful support work, but they would delay the main question: whether one integrated model can pass validation.",
+        "This is recommended because the target review already passed. The main question is now whether the existing integrated deep-learning route can learn the cleaner risk-adjusted label without creating another model branch.",
         "",
         "## Candidate Experiments",
         "",

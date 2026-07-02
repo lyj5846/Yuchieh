@@ -20,6 +20,8 @@ ALLOWED_REPAIR_IDS = {
     "repair_return_ranking_features",
     "repair_score_weighting",
     "redefine_return_target",
+    "review_target_or_data_sufficiency",
+    "ready_for_formal_review",
 }
 
 REQUIRED_DIAGNOSTIC_AREAS = {
@@ -104,7 +106,7 @@ def main() -> None:
 
     md = DIAGNOSIS_MD_PATH.read_text(encoding="utf-8")
     required_phrases = [
-        "主模型沒有升正式",
+        "主模型",
         "唯一建議",
         "同日報酬排序根因",
         "整合分數權重根因",

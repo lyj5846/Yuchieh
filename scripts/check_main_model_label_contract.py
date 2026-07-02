@@ -30,6 +30,9 @@ STRATEGY_TUNING_PATH = PROJECT_ROOT / "validation_layer" / "main_model_strategy_
 
 REQUIRED_COLUMNS = {
     "target_success",
+    "risk_adjusted_10d_success",
+    "old_target_success",
+    "old_success_but_risk_failed",
     "selection_success_label",
     "same_day_advantage_label",
     "same_day_advantage_target",
@@ -40,6 +43,12 @@ REQUIRED_COLUMNS = {
     "risk_head",
     "episode_head",
     "future_10d_high_close_return",
+    "future_10d_low_close_return",
+    "max_adverse_return",
+    "profit_event_day",
+    "adverse_event_day",
+    "same_day_both_event",
+    "realized_10d_trade_return",
     "daily_market_avg_return",
 }
 
@@ -102,6 +111,32 @@ def main() -> None:
     completed = scores[scores["split"].isin(["train", "development", "holdout"])].copy()
     if completed.empty:
         fail("completed train/development/holdout scores are required")
+    target_mismatch = completed[
+        completed["target_success"].astype(int) != completed["risk_adjusted_10d_success"].astype(int)
+    ]
+    if not target_mismatch.empty:
+        fail("target_success must equal risk_adjusted_10d_success")
+    impossible_new_success = completed[
+        (completed["target_success"].astype(int) == 1)
+        & (completed["old_target_success"].astype(int) != 1)
+    ]
+    if not impossible_new_success.empty:
+        fail("risk-adjusted target_success cannot be 1 when old_target_success is 0")
+    expected_old_success_failed = (
+        (completed["old_target_success"].astype(int) == 1)
+        & (completed["target_success"].astype(int) == 0)
+    ).astype(int)
+    old_success_failed_mismatch = completed[
+        completed["old_success_but_risk_failed"].astype(int) != expected_old_success_failed
+    ]
+    if not old_success_failed_mismatch.empty:
+        fail("old_success_but_risk_failed must equal old_target_success=1 and target_success=0")
+    same_day_tie_success = completed[
+        (completed["same_day_both_event"].astype(int) == 1)
+        & (completed["target_success"].astype(int) == 1)
+    ]
+    if not same_day_tie_success.empty:
+        fail("same-day profit/adverse tie must be conservative failure")
 
     invalid_selection = completed[
         (completed["selection_success_label"] == 1)
@@ -149,12 +184,20 @@ def main() -> None:
     forbidden_phrases = [
         "target_success multiplied by same-day return percentile",
         "target_success * same_day_return_percentile",
+        "Formal target_success is unchanged",
     ]
     for phrase in forbidden_phrases:
         if phrase in spec_text:
             fail(f"training spec must not contain old mixed target wording: {phrase}")
     if "pure same-day return percentile" not in spec_text:
         fail("training spec must describe same_day_advantage_target as pure same-day return percentile")
+    for phrase in [
+        "Formal target_success is risk-adjusted_10d_success",
+        "+3% close must occur before any -3% low",
+        "old_target_success for comparison only",
+    ]:
+        if phrase not in spec_text:
+            fail(f"training spec missing risk-adjusted target phrase: {phrase}")
     for phrase in [
         "same-day relative return-ranking features",
         "same_day_advantage loss weight",
@@ -165,7 +208,16 @@ def main() -> None:
     import json
 
     decision = json.loads(DECISION_JSON_PATH.read_text(encoding="utf-8"))
+    if decision.get("confirmed_plan") != "risk_adjusted_main_model_training_plan":
+        fail("decision json must come from risk_adjusted_main_model_training_plan")
+    if decision.get("target_contract") != "risk_adjusted_10d_success":
+        fail("decision json must record risk_adjusted_10d_success target contract")
     for key in [
+        "holdout_old_target_success_rate",
+        "holdout_risk_adjusted_success_rate",
+        "holdout_old_success_but_risk_failed_rate",
+        "holdout_old_success_but_risk_failed_count",
+        "holdout_old_success_but_risk_failed_among_old_success",
         "holdout_return_ranking_probe_return_lift",
         "holdout_return_ranking_probe_success_lift",
         "return_ranking_probe_order_ok",
