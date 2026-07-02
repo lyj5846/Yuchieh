@@ -1,0 +1,32 @@
+name: Model Contracts
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  contract-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile scripts
+        run: python -m py_compile scripts/*.py
+
+      - name: Check GitHub governance files
+        run: python scripts/check_github_governance.py
+
+      - name: Check repository static contract
+        run: python scripts/check_repository_static_contract.py
+
+      - name: Check planning contract
+        run: python scripts/check_planning_contract.py

@@ -1,0 +1,158 @@
+{
+  "plan_id": "model_plan_20260630",
+  "generated_at": "2026-07-02 18:08:26",
+  "data_latest_date": "2026-06-30",
+  "planning_status": "waiting_for_user_confirmation",
+  "problem_statement": "The project has a clean architecture and formal entrypoint, but no single trained main model has been accepted under the new contract.",
+  "recommended_experiment_id": "single_main_model_training_plan",
+  "confirmation_required": true,
+  "experiment_candidates": [
+    {
+      "id": "single_main_model_training_plan",
+      "hypothesis": "A single integrated model route can reduce branch confusion by learning success, risk, relative advantage, and episode start inside one training plan.",
+      "why_now": "The architecture is clean, but the main route has not yet been trained through the new planning and validation contract.",
+      "target_label": [
+        "10_day_success",
+        "failure_risk",
+        "same_day_relative_advantage",
+        "episode_start"
+      ],
+      "allowed_inputs": [
+        "stock_daily_all",
+        "market_daily",
+        "theme_group"
+      ],
+      "feature_changes": [
+        "Create signal-day features from stock price, volume, institution, margin, day-trade, market, and theme data.",
+        "Use only data known on or before the signal day.",
+        "Keep theme data as a categorical feature or validation group only."
+      ],
+      "model_changes": [
+        "Train one integrated main model route in the main model layer.",
+        "Keep raw outputs as research ranking scores until calibration passes.",
+        "Produce at most Top 3 candidates only after validation accepts the route."
+      ],
+      "validation_checks": [
+        "same_day_market_baseline",
+        "current_benchmark_comparison",
+        "score_band_direction",
+        "risk_band_direction",
+        "monthly_stability",
+        "stock_and_industry_concentration"
+      ],
+      "pass_criteria": [
+        "Holdout result beats same-day market baseline.",
+        "Holdout result is not materially weaker than the current benchmark.",
+        "Higher score bands perform better than lower score bands.",
+        "Higher risk bands fail more often than lower risk bands.",
+        "Candidate count remains at most Top 3 per day."
+      ],
+      "rejection_criteria": [
+        "Holdout lift is not positive after same-day baseline comparison.",
+        "Score bands reverse direction.",
+        "Risk bands do not separate failures.",
+        "Result depends on a narrow stock, date, or industry group."
+      ],
+      "expected_outputs": [
+        "main_model_training_spec.md",
+        "main_model_validation_summary.csv",
+        "main_model_decision.md"
+      ],
+      "risk_notes": [
+        "This is the broadest plan, so it must be implemented behind validation gates.",
+        "Do not expose raw scores as success rates."
+      ]
+    },
+    {
+      "id": "validation_harness_first_plan",
+      "hypothesis": "A stronger validation harness may prevent another cycle of attractive research results that cannot become formal output.",
+      "why_now": "The project now has contracts, but planning can still fail if acceptance checks are not executable before training.",
+      "target_label": [
+        "10_day_success",
+        "same_day_relative_advantage",
+        "failure_risk"
+      ],
+      "allowed_inputs": [
+        "stock_daily_all",
+        "market_daily",
+        "theme_group"
+      ],
+      "feature_changes": [
+        "No new model features in this plan.",
+        "Build reusable validation datasets from the approved label contract."
+      ],
+      "model_changes": [
+        "No model training in this plan.",
+        "Prepare validation functions that future training must call."
+      ],
+      "validation_checks": [
+        "baseline_comparison",
+        "score_band_direction",
+        "risk_band_direction",
+        "monthly_stability",
+        "concentration_limits"
+      ],
+      "pass_criteria": [
+        "Validation checks can fail intentionally on malformed sample plans.",
+        "Validation checks can pass on a well-formed plan fixture."
+      ],
+      "rejection_criteria": [
+        "Checks are only descriptive and cannot block promotion.",
+        "Checks require research outputs as inputs."
+      ],
+      "expected_outputs": [
+        "validation_harness_spec.md",
+        "validation_harness_checks.csv"
+      ],
+      "risk_notes": [
+        "This improves control but does not directly train a model.",
+        "Use it if the next implementation risk is governance rather than modeling."
+      ]
+    },
+    {
+      "id": "episode_and_risk_focus_plan",
+      "hypothesis": "Focusing on repeated signals and failure separation may reduce duplicate wave recommendations before the full model route is trained.",
+      "why_now": "Previous research suggested repeated signals and weak failure separation caused confusion, but this should be integrated rather than exposed as another branch.",
+      "target_label": [
+        "episode_start",
+        "failure_risk",
+        "10_day_success"
+      ],
+      "allowed_inputs": [
+        "stock_daily_all",
+        "market_daily",
+        "theme_group"
+      ],
+      "feature_changes": [
+        "Build episode grouping features from same-stock signal spacing.",
+        "Build drawdown and failed-window labels only from completed future windows."
+      ],
+      "model_changes": [
+        "Train only the episode and risk heads as a contained research plan.",
+        "Do not write formal candidates."
+      ],
+      "validation_checks": [
+        "episode_duplicate_reduction",
+        "risk_band_direction",
+        "same_day_market_baseline",
+        "monthly_stability"
+      ],
+      "pass_criteria": [
+        "Episode grouping reduces duplicate candidates without lowering holdout quality.",
+        "Higher risk bands have higher actual failure rate."
+      ],
+      "rejection_criteria": [
+        "Duplicate reduction removes useful early signals.",
+        "Risk bands do not separate outcomes."
+      ],
+      "expected_outputs": [
+        "episode_risk_plan_summary.md",
+        "episode_risk_validation.csv"
+      ],
+      "risk_notes": [
+        "This is narrower than the recommended plan.",
+        "It must not become a separate user-facing branch."
+      ]
+    }
+  ]
+}

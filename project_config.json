@@ -1,0 +1,37 @@
+{
+  "project_name": "stock_ai_probability_v2",
+  "allowed_inputs": {
+    "stock_daily_all": "C:\\Users\\林裕傑\\Documents\\Codex\\2026-05-29\\const-config-2449-b1-stock-sheet\\stock_daily_all.csv",
+    "market_daily": "C:\\Users\\林裕傑\\Documents\\Codex\\2026-05-29\\const-config-2449-b1-stock-sheet\\market_daily.csv",
+    "theme_group": "C:\\Users\\林裕傑\\Documents\\stock_ai_probability_v2\\inputs\\user_theme_group_v2_2026-06-16.csv"
+  },
+  "forbidden_path_fragments": [
+    "model_layer_",
+    "radar",
+    "priority",
+    "quality_score",
+    "failure_score"
+  ],
+  "formal_candidate_default": "目前無可信正式候選"
+  ,
+  "formal_entrypoint": "scripts/run_main_pipeline.py",
+  "research_output_dir": "research_layer",
+  "target": {
+    "buy_price": "next_trading_day_open",
+    "success_rule": "any_close_within_next_10_trading_days_ge_buy_open_plus_3pct",
+    "unfinished_rule": "tracking_only_not_success_or_failure"
+  },
+  "time_split": {
+    "train_end": "2025-12-31",
+    "dev_start": "2026-01-01",
+    "dev_end": "2026-03-31",
+    "holdout_start": "2026-04-01"
+  },
+  "skill_roles": {
+    "skill_01_ui_ux": "report_interface_only_after_model_passes",
+    "skill_02_debugging": "data_flow_test_failure_root_cause",
+    "skill_03_architecture": "clean_project_structure_and_boundaries",
+    "skill_04_codex_catalog": "tool_catalog_only",
+    "skill_05_agent_catalog": "tool_catalog_only"
+  }
+}

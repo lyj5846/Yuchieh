@@ -1,0 +1,53 @@
+name: Model repair task
+description: Track one model repair or validation task.
+title: "[model] "
+labels:
+  - model
+  - validation
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What failed, in plain language?
+      placeholder: Example: Holdout success lift is below the same-day market baseline.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Paste the latest decision or diagnosis numbers.
+      placeholder: Example: success lift, return lift, active months, selected repair id.
+    validations:
+      required: true
+  - type: dropdown
+    id: repair_kind
+    attributes:
+      label: Repair kind
+      options:
+        - redefine_return_target
+        - repair_score_weighting
+        - repair_return_ranking_features
+        - planning_only
+    validations:
+      required: true
+  - type: textarea
+    id: expected_checks
+    attributes:
+      label: Required checks
+      value: |
+        - python scripts/run_local_quality_gate.py
+        - formal output hash must remain unchanged unless run_main_pipeline.py is intentionally used
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      value: |
+        - No new data source
+        - No old report or old score reuse
+        - No fake probability wording
+    validations:
+      required: true

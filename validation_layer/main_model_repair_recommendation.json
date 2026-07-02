@@ -1,0 +1,47 @@
+{
+  "generated_at": "2026-07-02 22:57:19",
+  "data_latest_date": "2026-06-30",
+  "diagnosis_status": "completed",
+  "main_model_status": "not_promoted",
+  "recommended_repair_id": "redefine_return_target",
+  "alternative_repair_ids": [],
+  "recommendation_summary": "權重已通過 development 月度穩定，且報酬 lift 為正，但成功率仍輸同日市場；下一步不該再調權重，應檢討正式交易目標。",
+  "formal_outputs_unchanged": true,
+  "formal_hashes": {
+    "formal_status_sha256": "6981C575BE9D1F37CCFF36D1222F4E5F9663614784EE833A5B9DA9CA4D32C6F7",
+    "formal_candidates_sha256": "B43ADF38852F404EDC58C8B4C307B03588D26DB18810D59FBB52F372B9669872"
+  },
+  "evidence": [
+    "Holdout success rate 61.90%, below same-day market baseline 69.93%.",
+    "Holdout success lift -8.02%; development success lift 25.71%.",
+    "Integrated score high-low success delta 6.32%.",
+    "Success advantage head high-low success delta -2.96%.",
+    "Same-day advantage head high-low advantage delta 3.24%.",
+    "Same-day advantage head high-low soft target delta 4.01%.",
+    "Stable same-day return ranking feature count 9/10.",
+    "Raw same-day advantage Top3 return lift 2.38%.",
+    "Return-ranking probe holdout success lift -1.34%.",
+    "Same-day advantage contribution share inside integrated score 53.43%.",
+    "Selected weight development monthly stability 3/3; objective score 0.226468.",
+    "Risk head high-low failure delta -2.80%; risk separation is not the primary blocker."
+  ],
+  "blocked_from_formal_reason": "main model failed same-day success lift or formal ordering checks",
+  "root_cause_summary": {
+    "stable_same_day_return_features": 9,
+    "checked_same_day_return_features": 10,
+    "stable_future_return_features": 10,
+    "checked_future_return_features": 10,
+    "dev_advantage_target_delta": 0.12944145252791395,
+    "holdout_advantage_target_delta": 0.04008473656422962,
+    "raw_advantage_return_lift": 0.023827901747983354,
+    "integrated_return_lift": 0.0309597323778515,
+    "advantage_contribution_share": 0.5342958948786132,
+    "selected_weight_stability_passed": true,
+    "development_monthly_positive_months": 3,
+    "development_monthly_total_months": 3,
+    "development_min_monthly_success_lift": 0.18650793650793662,
+    "development_min_monthly_return_lift": 0.05720929558783169,
+    "selected_weight_objective_score": 0.22646755805667235,
+    "negative_return_lift_months": 1
+  }
+}
