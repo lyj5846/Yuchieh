@@ -1,0 +1,48 @@
+{
+  "generated_at": "2026-07-03 00:06:49",
+  "status": "learnable_signal_present",
+  "recommended_next_step": "feature_screen_then_retrain",
+  "reason": "三份資料內有跨 train/development/holdout 方向穩定的成功、風險過濾與報酬排序訊號。",
+  "stable_success_feature_count": 44,
+  "stable_risk_filter_feature_count": 61,
+  "stable_return_feature_count": 51,
+  "holdout_risk_adjusted_success_rate": 0.39215381022806883,
+  "holdout_old_success_but_risk_failed_rate": 0.3271580913832023,
+  "holdout_risk_failed_among_old_success": 0.4548209068282653,
+  "top_success_features": [
+    "close_vs_ma_20",
+    "close_ret_10",
+    "close_vs_ma_10",
+    "close_ret_20",
+    "close_ret_5",
+    "return_vs_electronics_5",
+    "return_vs_weighted_5",
+    "market_margin_5",
+    "return_vs_electronics_20",
+    "return_vs_weighted_20"
+  ],
+  "top_risk_filter_features": [
+    "close_vs_ma_20",
+    "close_ret_10",
+    "close_vs_ma_10",
+    "close_ret_20",
+    "close_ret_5",
+    "return_vs_electronics_5",
+    "return_vs_weighted_5",
+    "return_vs_electronics_20",
+    "return_vs_weighted_20",
+    "return_vs_weighted_10"
+  ],
+  "top_return_features": [
+    "close_vs_ma_20",
+    "close_ret_20",
+    "market_margin_5",
+    "return_vs_electronics_20",
+    "return_vs_weighted_20",
+    "return_vs_weighted_10",
+    "return_vs_electronics_10",
+    "same_day_return_rank_3",
+    "industry_ma_position_rank_20",
+    "industry_return_rank_10"
+  ]
+}
