@@ -1,0 +1,14 @@
+﻿metric,value
+signal_rows_checked,151083
+eligible_attention_disposition_event_rows,3769
+raw_event_rows,3895
+rows_with_known_1d,3697
+rows_with_known_3d,7853
+rows_with_known_10d,16903
+attention_active_rows,3689
+disposition_active_rows,582
+history_20d_rows,23752
+days_since_missing_rows,83753
+max_known_count_1d,2
+max_known_count_3d,4
+max_known_count_10d,11

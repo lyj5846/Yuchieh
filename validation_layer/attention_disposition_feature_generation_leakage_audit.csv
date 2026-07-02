@@ -1,0 +1,8 @@
+﻿metric,value
+future_event_join_violations,0
+post_close_rows_excluded,0
+unknown_close_rows_excluded,0
+future_effective_rows_excluded,12
+non_attention_disposition_rows_excluded,114
+eligible_event_rows,3769
+latest_market_date,2026-06-30
