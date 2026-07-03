@@ -319,6 +319,11 @@ def latest_model_candidates(decision: dict, latest_date: str, config: dict) -> l
     score_rows = read_model_scores()
     if not score_rows:
         fail("approved main model is missing model_layer/main_model_scores.csv")
+    if not any(str(row.get("日期", "")) == latest_date for row in score_rows):
+        fail(
+            "model_layer/main_model_scores.csv is not synced to the formal report date: "
+            f"{latest_date}. Run scripts/run_main_model_training_pipeline.py before formal output."
+        )
     gate = parse_float(decision.get("selected_gate"))
     replay_candidates = select_replay_candidates(score_rows, stock_by_id, latest_date, gate)
     return [row for row in replay_candidates if str(row.get("日期", "")) == latest_date]

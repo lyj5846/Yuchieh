@@ -1,6 +1,6 @@
 # Main Model Training Spec
 
-- Generated: 2026-07-03 15:03:50
+- Generated: 2026-07-03 21:31:31
 - Confirmed plan: `drawdown_side_label_main_model_training_plan`
 - Core data sources: three approved CSV inputs.
 - Candidate feature input: approved attention/disposition events only.

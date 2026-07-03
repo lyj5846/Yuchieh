@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-03 20:42:58",
+  "generated_at": "2026-07-03 21:35:26",
   "status": "attention_disposition_feature_generation_check_passed",
   "recommended_next_step": "prepare_attention_disposition_model_input_approval_review",
   "allowed_scope": "attention_disposition_only",

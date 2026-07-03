@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-03 20:42:52",
+  "generated_at": "2026-07-03 21:35:21",
   "status": "coverage_not_training_ready",
   "recommended_next_step": "build_historical_event_risk_backfill_collector",
   "reason": "目前事件資料只是官方 API 快照，主要落在最近日期，train/development 幾乎沒有覆蓋；不能拿去重訓。",

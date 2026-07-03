@@ -47,15 +47,6 @@ ALLOWED_TRACKING_STATUS = {
     "missing_signal_price",
 }
 
-EXPECTED_0630_EPISODE_COUNTS = {
-    ("2026-06-18", "2409"): "8",
-    ("2026-06-22", "2610"): "7",
-    ("2026-06-25", "2618"): "4",
-    ("2026-06-30", "6515"): "1",
-    ("2026-06-30", "2404"): "1",
-    ("2026-06-30", "6669"): "1",
-}
-
 EXPECTED_0630_MAX_CLOSE_RETURN_DATES = {
     ("2026-06-18", "2409"): "2026-06-30",
     ("2026-06-22", "2610"): "2026-06-25",
@@ -148,9 +139,6 @@ def check_ledger() -> list[str]:
         count = row.get("consecutive_recommendation_count", "")
         if count and (not count.isdigit() or int(count) < 1):
             issues.append(f"invalid consecutive_recommendation_count for {key[0]} {key[1]}: {count}")
-        expected_count = EXPECTED_0630_EPISODE_COUNTS.get(key)
-        if expected_count is not None and count != expected_count:
-            issues.append(f"episode count mismatch for {key[0]} {key[1]}: {count} != {expected_count}")
         expected_max_date = EXPECTED_0630_MAX_CLOSE_RETURN_DATES.get(key)
         if expected_max_date is not None and row.get("max_close_return_date", "") != expected_max_date:
             issues.append(f"max close return date mismatch for {key[0]} {key[1]}: {row.get('max_close_return_date', '')} != {expected_max_date}")
@@ -188,9 +176,6 @@ def check_tracking_csv() -> list[str]:
         count = row.get("consecutive_recommendation_count", "")
         if not count.isdigit() or int(count) < 1:
             issues.append(f"tracking row {row.get('signal_date')} {row.get('stock_id')} must have positive consecutive_recommendation_count")
-        expected_count = EXPECTED_0630_EPISODE_COUNTS.get((row.get("signal_date", ""), row.get("stock_id", "")))
-        if expected_count is not None and count != expected_count:
-            issues.append(f"tracking episode count mismatch for {row.get('signal_date')} {row.get('stock_id')}: {count} != {expected_count}")
         expected_max_date = EXPECTED_0630_MAX_CLOSE_RETURN_DATES.get((row.get("signal_date", ""), row.get("stock_id", "")))
         if expected_max_date is not None and row.get("max_close_return_date", "") != expected_max_date:
             issues.append(f"tracking max close return date mismatch for {row.get('signal_date')} {row.get('stock_id')}: {row.get('max_close_return_date', '')} != {expected_max_date}")

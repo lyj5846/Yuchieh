@@ -1,6 +1,6 @@
 # Main Model Failure Diagnosis
 
-- Generated: 2026-07-03 20:42:17
+- Generated: 2026-07-03 21:34:50
 - Data latest date: 2026-07-03
 - Main model status: `passed_holdout_validation`
 - Formal output: unchanged
@@ -16,18 +16,18 @@
 ## 核心證據
 
 - Target contract: drawdown_side_label_10d_touch_success.
-- Holdout success rate 85.96%, above same-day market baseline 70.08%.
-- Holdout success lift 15.88%; development success lift 17.15%.
-- Integrated score high-low success delta -3.14%.
-- Success advantage head high-low success delta -1.68%.
-- Same-day advantage head high-low advantage delta 5.17%.
-- Same-day advantage head high-low soft target delta 3.44%.
+- Holdout success rate 83.33%, above same-day market baseline 68.93%.
+- Holdout success lift 14.41%; development success lift 17.15%.
+- Integrated score high-low success delta -3.10%.
+- Success advantage head high-low success delta -2.02%.
+- Same-day advantage head high-low advantage delta 4.96%.
+- Same-day advantage head high-low soft target delta 3.31%.
 - Stable same-day return ranking feature count 9/10.
-- Raw same-day advantage Top3 return lift 4.24%.
-- Return-ranking probe holdout success lift 7.81%.
-- Same-day advantage contribution share inside integrated score 19.68%.
+- Raw same-day advantage Top3 return lift 4.16%.
+- Return-ranking probe holdout success lift 7.84%.
+- Same-day advantage contribution share inside integrated score 19.72%.
 - Selected weight development monthly stability 3/3; objective score 0.173979.
-- Risk head high-low failure delta 0.59%; risk separation is not the primary blocker.
+- Risk head high-low failure delta 1.20%; risk separation is not the primary blocker.
 
 ## 白話解讀
 
@@ -39,9 +39,9 @@
 
 - 穩定的同日報酬排序特徵數: 9/10。
 - same_day_advantage_head 在 development 的 soft target 高低差: 6.73%。
-- same_day_advantage_head 在 holdout 的 soft target 高低差: 3.44%。
-- 單看 same_day_advantage_head 的 Top3 return lift: 4.24%。
-- 整合分數中的 same_day_advantage 權重貢獻占比: 19.68%。
+- same_day_advantage_head 在 holdout 的 soft target 高低差: 3.31%。
+- 單看 same_day_advantage_head 的 Top3 return lift: 4.16%。
+- 整合分數中的 same_day_advantage 權重貢獻占比: 19.72%。
 - holdout 負報酬優勢月份數: 0。
 
 根因判定: `ready_for_formal_review`。回撤旁支標籤主模型已通過訓練驗證；下一步只能由正式入口決定是否更新候選。

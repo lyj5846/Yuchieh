@@ -1,6 +1,6 @@
 # Main Model Decision
 
-- Generated: 2026-07-03 15:03:50
+- Generated: 2026-07-03 21:31:31
 - Status: passed_holdout_validation
 - Formal approved: True
 - Reason: main model passed validation and can be considered by the formal entrypoint
@@ -8,18 +8,18 @@
 - Feature screen: selected 48 of 115 features
 - Feature screen holdout usage: audit-only, not selection
 - Target contract: drawdown_side_label_10d_touch_success
-- Holdout primary +3% touch success rate: 71.93%
-- Holdout risk-adjusted success rate: 39.22%
-- Holdout success with -3% drawdown side risk among all rows: 32.72%
-- Holdout success with -3% drawdown side risk among successes: 45.48%
-- Holdout clean success rate: 39.22%
-- Holdout painful success rate: 32.72%
-- Holdout painful success among successes: 45.48%
-- Holdout success rate: 85.96%
-- Holdout success lift: 15.88%
-- Holdout return lift: 5.36%
-- Holdout return-ranking probe success lift: 7.81%
-- Holdout return-ranking probe return lift: 4.24%
+- Holdout primary +3% touch success rate: 71.84%
+- Holdout risk-adjusted success rate: 39.61%
+- Holdout success with -3% drawdown side risk among all rows: 32.23%
+- Holdout success with -3% drawdown side risk among successes: 44.86%
+- Holdout clean success rate: 39.61%
+- Holdout painful success rate: 32.23%
+- Holdout painful success among successes: 44.86%
+- Holdout success rate: 83.33%
+- Holdout success lift: 14.41%
+- Holdout return lift: 5.04%
+- Holdout return-ranking probe success lift: 7.84%
+- Holdout return-ranking probe return lift: 4.16%
 - Score band ordering valid: False
 - Score band ordering blocks promotion: False
 - Candidate-region validation passed: True

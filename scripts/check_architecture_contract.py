@@ -26,6 +26,7 @@ REQUIRED_DIRS = [
 
 FORMAL_WRITER_ALLOWLIST = {
     PROJECT_ROOT / "scripts" / "run_main_pipeline.py",
+    PROJECT_ROOT / "scripts" / "run_update_to_date.py",
     PROJECT_ROOT / "scripts" / "check_architecture_contract.py",
 }
 
@@ -127,6 +128,7 @@ def write_report(issues: list[str]) -> None:
         f"- Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         f"- Status: {status}",
         "- Formal writer: `scripts/run_main_pipeline.py`",
+        "- Update summary writer: `scripts/run_update_to_date.py`",
         "- Research output layer: `research_layer`",
         "",
     ]
