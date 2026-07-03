@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-03 20:23:16",
+  "generated_at": "2026-07-03 20:37:26",
   "status": "attention_disposition_feature_generation_check_passed",
   "recommended_next_step": "prepare_attention_disposition_model_input_approval_review",
   "allowed_scope": "attention_disposition_only",
@@ -12,12 +12,12 @@
     "days_since_last_attention_disposition",
     "has_attention_disposition_history_20d"
   ],
-  "eligible_event_rows": 3769,
-  "signal_rows_checked": 151083,
+  "eligible_event_rows": 3781,
+  "signal_rows_checked": 151530,
   "future_event_join_violations": 0,
   "post_close_rows_excluded": 0,
   "unknown_close_rows_excluded": 0,
-  "future_effective_rows_excluded": 12,
+  "future_effective_rows_excluded": 0,
   "large_feature_matrix_written": false,
   "new_input_not_enabled": true,
   "do_not_retrain_yet": true,

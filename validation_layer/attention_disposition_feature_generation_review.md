@@ -12,9 +12,9 @@
 
 - Status: `attention_disposition_feature_generation_check_passed`
 - Recommended next step: `prepare_attention_disposition_model_input_approval_review`
-- Eligible event rows: 3769
+- Eligible event rows: 3781
 - Future join violations: 0
-- Latest market date: 2026-06-30
+- Latest market date: 2026-07-03
 
 ## Split Generation Summary
 
@@ -22,7 +22,7 @@
 |---|---:|---:|---:|---:|---:|---:|
 | train | 121797 | 10834 | 8.90% | 2243 | 563 | 59.96% |
 | development | 13906 | 2321 | 16.69% | 542 | 0 | 38.23% |
-| holdout | 15380 | 3748 | 24.37% | 904 | 19 | 35.17% |
+| holdout | 15827 | 3884 | 24.54% | 914 | 80 | 35.08% |
 
 ## Leakage Boundary
 

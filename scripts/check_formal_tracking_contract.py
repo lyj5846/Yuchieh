@@ -32,6 +32,7 @@ REQUIRED_LEDGER_COLUMNS = {
     "days_remaining",
     "latest_close_return",
     "max_close_return_so_far",
+    "max_close_return_date",
     "min_low_return_so_far",
     "hit_plus3_close_date",
     "hit_minus3_low_date",
@@ -55,6 +56,12 @@ EXPECTED_0630_EPISODE_COUNTS = {
     ("2026-06-30", "6669"): "1",
 }
 
+EXPECTED_0630_MAX_CLOSE_RETURN_DATES = {
+    ("2026-06-18", "2409"): "2026-06-30",
+    ("2026-06-22", "2610"): "2026-06-25",
+    ("2026-06-25", "2618"): "2026-06-30",
+}
+
 
 def fail(message: str) -> None:
     raise SystemExit(f"FAIL: {message}")
@@ -63,6 +70,12 @@ def fail(message: str) -> None:
 def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
+
+
+def read_header(path: Path) -> list[str]:
+    with path.open("r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.reader(f)
+        return next(reader, [])
 
 
 def require_files() -> list[str]:
@@ -81,19 +94,17 @@ def require_files() -> list[str]:
 
 def check_formal_candidates() -> list[str]:
     issues: list[str] = []
+    header = read_header(FORMAL_CANDIDATES_PATH)
     rows = read_csv(FORMAL_CANDIDATES_PATH)
-    if not rows:
-        issues.append("formal_candidates.csv is empty; current formal strategy should emit 2026-06-30 candidates")
-        return issues
-
-    columns = set(rows[0])
+    columns = set(header)
     if "strategy_backtest_hit_rate" not in columns:
         issues.append("formal_candidates.csv must include strategy_backtest_hit_rate")
     if "consecutive_recommendation_count" not in columns:
         issues.append("formal_candidates.csv must include consecutive_recommendation_count")
+    if "max_close_return_date" in columns:
+        issues.append("formal_candidates.csv should not include max_close_return_date; it is a tracking-only field")
     if "actual_hit_rate" in columns:
         issues.append("formal_candidates.csv must not use actual_hit_rate")
-    header = list(rows[0])
     if "research_score" in header and "consecutive_recommendation_count" in header:
         if header.index("consecutive_recommendation_count") != header.index("research_score") + 1:
             issues.append("consecutive_recommendation_count must appear immediately after research_score")
@@ -140,6 +151,9 @@ def check_ledger() -> list[str]:
         expected_count = EXPECTED_0630_EPISODE_COUNTS.get(key)
         if expected_count is not None and count != expected_count:
             issues.append(f"episode count mismatch for {key[0]} {key[1]}: {count} != {expected_count}")
+        expected_max_date = EXPECTED_0630_MAX_CLOSE_RETURN_DATES.get(key)
+        if expected_max_date is not None and row.get("max_close_return_date", "") != expected_max_date:
+            issues.append(f"max close return date mismatch for {key[0]} {key[1]}: {row.get('max_close_return_date', '')} != {expected_max_date}")
 
     rows_0630 = [row for row in rows if row.get("signal_date") == "2026-06-30"]
     stocks_0630 = {row.get("stock_id") for row in rows_0630}
@@ -149,8 +163,6 @@ def check_ledger() -> list[str]:
     for row in rows_0630:
         if row.get("candidate_type") != "new_formal":
             issues.append(f"2026-06-30 ledger candidate {row.get('stock_id')} must be new_formal")
-        if row.get("tracking_status") != "not_started":
-            issues.append(f"2026-06-30 ledger candidate {row.get('stock_id')} must be not_started")
         count = row.get("consecutive_recommendation_count", "")
         if not count.isdigit() or int(count) < 1:
             issues.append(f"2026-06-30 ledger candidate {row.get('stock_id')} must have positive consecutive_recommendation_count")
@@ -170,6 +182,8 @@ def check_tracking_csv() -> list[str]:
     columns = set(rows[0])
     if "consecutive_recommendation_count" not in columns:
         issues.append("formal_candidate_tracking.csv must include consecutive_recommendation_count")
+    if "max_close_return_date" not in columns:
+        issues.append("formal_candidate_tracking.csv must include max_close_return_date")
     for row in rows:
         count = row.get("consecutive_recommendation_count", "")
         if not count.isdigit() or int(count) < 1:
@@ -177,6 +191,9 @@ def check_tracking_csv() -> list[str]:
         expected_count = EXPECTED_0630_EPISODE_COUNTS.get((row.get("signal_date", ""), row.get("stock_id", "")))
         if expected_count is not None and count != expected_count:
             issues.append(f"tracking episode count mismatch for {row.get('signal_date')} {row.get('stock_id')}: {count} != {expected_count}")
+        expected_max_date = EXPECTED_0630_MAX_CLOSE_RETURN_DATES.get((row.get("signal_date", ""), row.get("stock_id", "")))
+        if expected_max_date is not None and row.get("max_close_return_date", "") != expected_max_date:
+            issues.append(f"tracking max close return date mismatch for {row.get('signal_date')} {row.get('stock_id')}: {row.get('max_close_return_date', '')} != {expected_max_date}")
     return issues
 
 
@@ -190,6 +207,7 @@ def check_daily_report() -> list[str]:
         "research_score 是排序分數，不是機率",
         "strategy_backtest_hit_rate 是策略歷史回測成功率，不是個股成功率",
         "連續被推薦次數",
+        "最高收盤報酬日期",
         "6515 穎崴",
         "2404 漢唐",
         "6669 緯穎",
@@ -203,9 +221,9 @@ def check_daily_report() -> list[str]:
     if text.count("連續被推薦次數") < 3:
         issues.append("daily report must show 連續被推薦次數 in new candidates, continuations, and tracking sections")
     for expected_line in [
-        "| 2409 友達 | 1 | 2.171250 | 8 | 2026-06-18 | success | 11.04% |",
-        "| 2610 華航 | 2 | 1.844796 | 7 | 2026-06-22 | success | 10.25% |",
-        "| 2618 長榮航 | 3 | 1.780129 | 4 | 2026-06-25 | tracking | 1.01% |",
+        "| 2026-06-18 | 2409 友達 | 8 | 2026-06-22 | 7 | 11.04% | 2026-06-30 | 2026-06-22 | 2026-06-24 | success |",
+        "| 2026-06-22 | 2610 華航 | 7 | 2026-06-23 | 6 | 10.25% | 2026-06-25 | 2026-06-24 |  | success |",
+        "| 2026-06-25 | 2618 長榮航 | 4 | 2026-06-26 | 3 | 1.01% | 2026-06-30 |  |  | tracking |",
     ]:
         if expected_line not in text:
             issues.append(f"daily report episode-count line mismatch: {expected_line}")

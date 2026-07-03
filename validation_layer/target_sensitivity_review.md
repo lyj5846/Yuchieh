@@ -1,7 +1,7 @@
 # Target Sensitivity Review
 
-- Generated: 2026-07-03 20:23:08
-- Data latest date: 2026-06-30
+- Generated: 2026-07-03 20:37:17
+- Data latest date: 2026-07-03
 - Scope: label-only target sensitivity; no model training; no stock candidates.
 - Formal output: unchanged by this review.
 
@@ -16,29 +16,29 @@
 
 ## Current Target Snapshot
 
-- Holdout success rate: 71.93%
+- Holdout success rate: 71.84%
 - Holdout adverse-first rate: 0.00%
 - Holdout realized rule return: -0.01%
-- Split success-rate max gap: 20.31%
+- Split success-rate max gap: 20.22%
 
 ## Best Alternative Snapshot
 
 - Target: `risk_adjusted_3pct_before_minus3pct_10d`
 - Description: 硬風險比較：10 日內先收盤 +3%，且不能先最低價 -3%。
-- Holdout success rate: 39.22%
-- Holdout adverse-first rate: 59.60%
-- Holdout realized rule return: -0.61%
-- Split success-rate max gap: 3.43%
+- Holdout success rate: 39.61%
+- Holdout adverse-first rate: 59.22%
+- Holdout realized rule return: -0.59%
+- Split success-rate max gap: 3.83%
 
 ## Candidate Ranking
 
 | target | holdout success | realized return | split gap | decision score |
 |---|---:|---:|---:|---:|
-| risk_adjusted_3pct_before_minus3pct_10d | 39.22% | -0.61% | 3.43% | 4.904 |
-| risk_adjusted_2pct_before_minus3pct_10d | 42.29% | -0.87% | 1.76% | 4.896 |
-| risk_adjusted_3pct_before_minus3pct_5d | 36.57% | -0.62% | 7.11% | 4.867 |
-| risk_adjusted_3pct_before_minus5pct_10d | 52.24% | -0.70% | 8.04% | 4.850 |
-| old_touch_3pct_10d | 71.93% | -0.01% | 20.31% | 1.296 |
+| risk_adjusted_3pct_before_minus3pct_10d | 39.61% | -0.59% | 3.83% | 4.903 |
+| risk_adjusted_2pct_before_minus3pct_10d | 42.83% | -0.84% | 1.76% | 4.898 |
+| risk_adjusted_3pct_before_minus3pct_5d | 37.05% | -0.59% | 7.60% | 4.865 |
+| risk_adjusted_3pct_before_minus5pct_10d | 52.44% | -0.68% | 8.25% | 4.850 |
+| old_touch_3pct_10d | 71.84% | -0.01% | 20.22% | 1.297 |
 
 ## Boundary
 

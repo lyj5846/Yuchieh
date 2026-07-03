@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-07-03 20:23:10",
+  "generated_at": "2026-07-03 20:37:20",
   "status": "coverage_not_training_ready",
   "recommended_next_step": "build_historical_event_risk_backfill_collector",
   "reason": "目前事件資料只是官方 API 快照，主要落在最近日期，train/development 幾乎沒有覆蓋；不能拿去重訓。",
   "event_rows_total": 145,
-  "event_rows_usable_by_market_latest": 30,
+  "event_rows_usable_by_market_latest": 82,
   "event_first_signal_usable_date": "2026-06-16",
-  "event_last_signal_usable_date": "2026-06-30",
+  "event_last_signal_usable_date": "2026-07-03",
   "market_start_date": "2024-01-02",
-  "market_latest_date": "2026-06-30",
-  "total_trading_days": 601,
-  "event_trading_days": 10,
-  "overall_event_day_coverage_rate": 0.016638935108153077,
+  "market_latest_date": "2026-07-03",
+  "total_trading_days": 604,
+  "event_trading_days": 13,
+  "overall_event_day_coverage_rate": 0.02152317880794702,
   "stock_universe_count": 254,
-  "event_stock_count": 30,
-  "event_stock_coverage_rate": 0.11811023622047244,
+  "event_stock_count": 67,
+  "event_stock_coverage_rate": 0.2637795275590551,
   "split_metrics": [
     {
       "split": "train",
@@ -39,12 +39,12 @@
     {
       "split": "holdout",
       "start_date": "2026-04-01",
-      "end_date": "2026-06-30",
-      "trading_days": 61,
-      "event_rows": 30,
-      "event_trading_days": 10,
-      "event_stock_count": 30,
-      "event_day_coverage_rate": 0.16393442622950818
+      "end_date": "2026-07-03",
+      "trading_days": 64,
+      "event_rows": 82,
+      "event_trading_days": 13,
+      "event_stock_count": 67,
+      "event_day_coverage_rate": 0.203125
     }
   ],
   "new_input_not_enabled": true,

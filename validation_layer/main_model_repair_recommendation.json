@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-03 20:22:39",
-  "data_latest_date": "2026-06-30",
+  "generated_at": "2026-07-03 20:36:49",
+  "data_latest_date": "2026-07-03",
   "diagnosis_status": "completed",
   "main_model_status": "passed_holdout_validation",
   "recommended_repair_id": "ready_for_formal_review",
@@ -8,8 +8,8 @@
   "recommendation_summary": "回撤旁支標籤主模型已通過訓練驗證；下一步只能由正式入口決定是否更新候選。",
   "formal_outputs_unchanged": true,
   "formal_hashes": {
-    "formal_status_sha256": "24980B6E3C6CAE25EA62AE6955FC6B3E18903438DE5362E5955F68D420190BCD",
-    "formal_candidates_sha256": "2AD045F299779E3CE825BC9FD3A1A96742A1C4E478B9F694854AA564E6900514"
+    "formal_status_sha256": "03A9A55A6A2918DE56FC1B3C5DD14D629090EB82C95AA6E9534B60A667596BA7",
+    "formal_candidates_sha256": "FE825E527F93A611CD49AB706D5884CF2464EF81B60962F0EF2D85C328CDF988"
   },
   "evidence": [
     "Target contract: drawdown_side_label_10d_touch_success.",
@@ -26,7 +26,7 @@
     "Selected weight development monthly stability 3/3; objective score 0.173979.",
     "Risk head high-low failure delta 0.59%; risk separation is not the primary blocker."
   ],
-  "blocked_from_formal_reason": "formal entrypoint has promoted current validated candidates",
+  "blocked_from_formal_reason": "formal entrypoint may promote candidates when the latest date passes the selected score gate",
   "root_cause_summary": {
     "stable_same_day_return_features": 9,
     "checked_same_day_return_features": 10,
@@ -44,6 +44,6 @@
     "development_min_monthly_return_lift": 0.042990778670976365,
     "selected_weight_objective_score": 0.17397929641962956,
     "negative_return_lift_months": 0,
-    "formal_candidate_rows": 3
+    "formal_candidate_rows": 0
   }
 }

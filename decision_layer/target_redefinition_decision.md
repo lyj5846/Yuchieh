@@ -1,7 +1,7 @@
 # Target Redefinition Decision
 
-- Generated: 2026-07-03 20:22:41
-- Data latest date: 2026-06-30
+- Generated: 2026-07-03 20:36:51
+- Data latest date: 2026-07-03
 - Decision status: `label_viable_for_training_review`
 - Formal output: unchanged by this review.
 
@@ -37,14 +37,14 @@
 
 ### holdout
 
-- Completed rows: 12847
-- Old success rate: 71.93%
-- Risk-adjusted success rate: 39.22%
-- Old successes filtered by risk rule: 4203
-- Filtered among old successes: 45.48%
-- Average high-close return: 12.36%
-- Average adverse low return: -8.05%
-- Average realized rule return: -0.61%
+- Completed rows: 13294
+- Old success rate: 71.84%
+- Risk-adjusted success rate: 39.61%
+- Old successes filtered by risk rule: 4285
+- Filtered among old successes: 44.86%
+- Average high-close return: 12.24%
+- Average adverse low return: -8.10%
+- Average realized rule return: -0.59%
 
 ## Decision Reasons
 

@@ -41,6 +41,7 @@ TRACKING_COLUMNS = [
     "days_remaining",
     "latest_close_return",
     "max_close_return_so_far",
+    "max_close_return_date",
     "min_low_return_so_far",
     "hit_plus3_close_date",
     "hit_minus3_low_date",
@@ -66,6 +67,7 @@ LEDGER_COLUMNS = [
     "days_remaining",
     "latest_close_return",
     "max_close_return_so_far",
+    "max_close_return_date",
     "min_low_return_so_far",
     "hit_plus3_close_date",
     "hit_minus3_low_date",
@@ -343,6 +345,7 @@ def candidate_to_ledger_row(candidate: dict, candidate_type: str, generated: str
         "days_remaining": "10",
         "latest_close_return": "",
         "max_close_return_so_far": "",
+        "max_close_return_date": "",
         "min_low_return_so_far": "",
         "hit_plus3_close_date": "",
         "hit_minus3_low_date": "",
@@ -415,6 +418,7 @@ def track_signal_record(record: dict, stock_by_id: dict[str, list[dict]], as_of_
     success_date = ""
     drawdown_date = ""
     max_close_return = None
+    max_close_return_date = ""
     min_low_return = None
     latest_close_return = None
     for row in future_rows:
@@ -422,7 +426,9 @@ def track_signal_record(record: dict, stock_by_id: dict[str, list[dict]], as_of_
         low = parse_float(row.get("最低價"))
         if close is not None:
             close_return = close / buy_open - 1.0
-            max_close_return = close_return if max_close_return is None else max(max_close_return, close_return)
+            if max_close_return is None or close_return > max_close_return:
+                max_close_return = close_return
+                max_close_return_date = str(row.get("日期", ""))
             latest_close_return = close_return
             if not success_date and close >= target_close:
                 success_date = str(row.get("日期", ""))
@@ -448,6 +454,7 @@ def track_signal_record(record: dict, stock_by_id: dict[str, list[dict]], as_of_
             "days_remaining": str(max(0, 10 - observed_days)),
             "latest_close_return": fmt_float(latest_close_return),
             "max_close_return_so_far": fmt_float(max_close_return),
+            "max_close_return_date": max_close_return_date,
             "min_low_return_so_far": fmt_float(min_low_return),
             "hit_plus3_close_date": success_date,
             "hit_minus3_low_date": drawdown_date,
@@ -475,6 +482,7 @@ def tracking_view_from_ledger(ledger_rows: list[dict]) -> list[dict]:
             "days_remaining": row.get("days_remaining", ""),
             "latest_close_return": row.get("latest_close_return", ""),
             "max_close_return_so_far": row.get("max_close_return_so_far", ""),
+            "max_close_return_date": row.get("max_close_return_date", ""),
             "min_low_return_so_far": row.get("min_low_return_so_far", ""),
             "hit_plus3_close_date": row.get("hit_plus3_close_date", ""),
             "hit_minus3_low_date": row.get("hit_minus3_low_date", ""),
@@ -660,6 +668,7 @@ def continuation_rows(config: dict, latest_date: str, ledger_rows: list[dict], t
                 "previous_signal_date": prior.get("signal_date", ""),
                 "previous_tracking_status": prior.get("tracking_status", ""),
                 "max_close_return_so_far": prior.get("max_close_return_so_far", ""),
+                "max_close_return_date": prior.get("max_close_return_date", ""),
             }
         )
     return rows
@@ -702,6 +711,7 @@ def write_daily_report(latest_date: str, today_candidates: list[dict], continuat
             "前次訊號日": row.get("previous_signal_date", ""),
             "追蹤狀態": row.get("previous_tracking_status", ""),
             "目前最高收盤報酬": pct_text(row.get("max_close_return_so_far", "")),
+            "最高收盤報酬日期": row.get("max_close_return_date", ""),
         }
         for row in continuations
     ]
@@ -713,6 +723,7 @@ def write_daily_report(latest_date: str, today_candidates: list[dict], continuat
             "買入日": row.get("buy_date", ""),
             "已追蹤日": row.get("observed_trading_days", ""),
             "最高收盤報酬": pct_text(row.get("max_close_return_so_far", "")),
+            "最高收盤報酬日期": row.get("max_close_return_date", ""),
             "+3%達成日": row.get("hit_plus3_close_date", ""),
             "-3%風險日": row.get("hit_minus3_low_date", ""),
             "狀態": row.get("tracking_status", ""),
@@ -733,11 +744,11 @@ def write_daily_report(latest_date: str, today_candidates: list[dict], continuat
         "",
         "## 高分續強但已追蹤",
         "",
-        *md_table(["股票", "原始排名", "research_score", "連續被推薦次數", "前次訊號日", "追蹤狀態", "目前最高收盤報酬"], continuation_display),
+        *md_table(["股票", "原始排名", "research_score", "連續被推薦次數", "前次訊號日", "追蹤狀態", "目前最高收盤報酬", "最高收盤報酬日期"], continuation_display),
         "",
         "## 正式候選追蹤",
         "",
-        *md_table(["訊號日", "股票", "連續被推薦次數", "買入日", "已追蹤日", "最高收盤報酬", "+3%達成日", "-3%風險日", "狀態"], tracking_display),
+        *md_table(["訊號日", "股票", "連續被推薦次數", "買入日", "已追蹤日", "最高收盤報酬", "最高收盤報酬日期", "+3%達成日", "-3%風險日", "狀態"], tracking_display),
         "",
     ]
     FORMAL_DAILY_REPORT_MD_PATH.write_text("\n".join(lines), encoding="utf-8")

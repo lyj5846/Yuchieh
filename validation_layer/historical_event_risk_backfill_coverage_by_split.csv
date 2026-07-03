@@ -1,4 +1,4 @@
 ﻿split,start_date,end_date,trading_days,event_rows,event_trading_days,event_day_coverage_rate,event_stock_count,event_stock_coverage_rate,attention_rows,disposition_rows,other_event_rows
 train,2024-01-02,2025-12-31,485,2304,470,0.9690721649484536,150,0.5905511811023622,2243,61,0
 development,2026-01-02,2026-03-31,55,542,55,1.0,82,0.3228346456692913,542,0,0
-holdout,2026-04-01,2026-06-30,61,934,61,1.0,138,0.5433070866141733,904,19,11
+holdout,2026-04-01,2026-07-03,64,986,64,1.0,155,0.610236220472441,915,20,51

@@ -1,7 +1,7 @@
 # Data Learnability Review
 
-- Generated: 2026-07-03 20:23:02
-- Data latest date: 2026-06-30
+- Generated: 2026-07-03 20:37:12
+- Data latest date: 2026-07-03
 - Scope: data/label learnability only; no model training; no stock candidates.
 - Formal output: unchanged by this review.
 
@@ -14,26 +14,26 @@
 
 ## Holdout Snapshot
 
-- Primary +3% success rate: 71.93%
-- Hard risk-adjusted comparison success rate: 39.22%
-- Success with -3% drawdown side risk: 32.72%
-- Drawdown side risk among successes: 45.48%
-- Average max adverse return: -8.05%
-- Average realized rule return: 5.74%
+- Primary +3% success rate: 71.84%
+- Hard risk-adjusted comparison success rate: 39.61%
+- Success with -3% drawdown side risk: 32.23%
+- Drawdown side risk among successes: 44.86%
+- Average max adverse return: -8.10%
+- Average realized rule return: 5.60%
 
 ## Learnable Signal Counts
 
 - Stable success features: 41
 - Stable risk-filter features: 67
-- Stable return-ranking features: 55
+- Stable return-ranking features: 51
 
 ## Top Feature Clues
 
 These are distinguishability clues, not buy reasons; a stable negative direction can still be useful for filtering risk.
 
-- Success target clues: market_margin_5, theme_軟體／電信／雲平台, 加權指數收盤_ret_3, market_breadth, close_vs_ma_10, close_ret_5, 融資餘額, industry_volume_rank_20
-- Risk-filter clues: theme_軟體／電信／雲平台, market_breadth, close_vs_ma_10, close_ret_5, 融資餘額, industry_volume_rank_20, volatility_20, industry_volume_rank_10
-- Return-ranking clues: market_margin_5, theme_軟體／電信／雲平台, 加權指數收盤_ret_3, market_breadth, 融資餘額, volatility_20, 電子指數收盤_ret_3, 融券餘額
+- Success target clues: market_margin_5, theme_軟體／電信／雲平台, market_breadth, 融資餘額, close_vs_ma_10, close_ret_5, industry_volume_rank_20, 加權指數收盤_ret_3
+- Risk-filter clues: theme_軟體／電信／雲平台, market_breadth, 融資餘額, close_vs_ma_10, close_ret_5, industry_volume_rank_20, 加權指數收盤_ret_3, volatility_20
+- Return-ranking clues: market_margin_5, theme_軟體／電信／雲平台, market_breadth, 融資餘額, 加權指數收盤_ret_3, volatility_20, 融券餘額, 電子指數收盤_ret_3
 
 ## Boundary
 

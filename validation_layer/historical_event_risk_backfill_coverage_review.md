@@ -12,11 +12,11 @@
 - Status: `coverage_ready_for_limited_attention_disposition_features`
 - Recommended next step: `prepare_limited_attention_disposition_feature_contract`
 - Allowed scope: `attention_disposition_only`
-- Usable rows by market latest date: 3780
+- Usable rows by market latest date: 3832
 - Raw rows including future effective dates: 3895
-- Future rows excluded from coverage: 115
-- Top event type: attention (97.59%)
-- Top source: TWSE historical attention (97.59%)
+- Future rows excluded from coverage: 63
+- Top event type: attention (96.56%)
+- Top source: TWSE historical attention (96.27%)
 
 ## Split Coverage
 
@@ -24,26 +24,31 @@
 |---|---:|---:|---:|---:|---:|---:|---:|
 | train | 2304 | 470 | 96.91% | 59.06% | 2243 | 61 | 0 |
 | development | 542 | 55 | 100.00% | 32.28% | 542 | 0 | 0 |
-| holdout | 934 | 61 | 100.00% | 54.33% | 904 | 19 | 11 |
+| holdout | 986 | 64 | 100.00% | 61.02% | 915 | 20 | 51 |
 
 ## Event Type Concentration
 
 | event type | rows | share | stocks |
 |---|---:|---:|---:|
-| attention | 3689 | 97.59% | 168 |
-| disposition | 80 | 2.12% | 51 |
-| ex_dividend | 11 | 0.29% | 11 |
+| attention | 3700 | 96.56% | 177 |
+| disposition | 81 | 2.11% | 52 |
+| ex_dividend | 26 | 0.68% | 26 |
+| material_info | 22 | 0.57% | 18 |
+| investor_meeting | 3 | 0.08% | 3 |
 
 ## Source Concentration
 
 | source | rows | share | event types |
 |---|---:|---:|---|
-| TWSE historical attention | 3689 | 97.59% | attention |
-| TWSE historical disposition | 61 | 1.61% | disposition |
-| TWSE disposition securities | 11 | 0.29% | disposition |
-| TPEx ex-dividend preview | 9 | 0.24% | ex_dividend |
+| TWSE historical attention | 3689 | 96.27% | attention |
+| TWSE historical disposition | 61 | 1.59% | disposition |
+| TWSE material information | 19 | 0.50% | investor_meeting | material_info |
+| TWSE ex-dividend preview | 13 | 0.34% | ex_dividend |
+| TPEx ex-dividend preview | 12 | 0.31% | ex_dividend |
+| TWSE disposition securities | 12 | 0.31% | disposition |
+| TPEx attention securities | 11 | 0.29% | attention |
 | TPEx disposition securities | 8 | 0.21% | disposition |
-| TWSE ex-dividend preview | 2 | 0.05% | ex_dividend |
+| TPEx material information | 7 | 0.18% | ex_dividend | material_info |
 
 ## Decision Boundary
 

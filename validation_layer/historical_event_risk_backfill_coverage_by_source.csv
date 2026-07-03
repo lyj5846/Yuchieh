@@ -1,7 +1,10 @@
 ﻿source_name,event_rows,event_row_share,event_stock_count,event_types,first_signal_usable_date,last_signal_usable_date
-TWSE historical attention,3689,0.975925925925926,168,attention,2024-01-02,2026-06-30
-TWSE historical disposition,61,0.016137566137566138,34,disposition,2024-02-16,2025-08-25
-TWSE disposition securities,11,0.00291005291005291,11,disposition,2026-06-17,2026-06-29
-TPEx ex-dividend preview,9,0.002380952380952381,9,ex_dividend,2026-06-23,2026-06-30
-TPEx disposition securities,8,0.0021164021164021165,8,disposition,2026-06-16,2026-06-23
-TWSE ex-dividend preview,2,0.0005291005291005291,2,ex_dividend,2026-06-30,2026-06-30
+TWSE historical attention,3689,0.9626826722338204,168,attention,2024-01-02,2026-06-30
+TWSE historical disposition,61,0.015918580375782882,34,disposition,2024-02-16,2025-08-25
+TWSE material information,19,0.004958246346555324,18,investor_meeting | material_info,2026-07-01,2026-07-02
+TWSE ex-dividend preview,13,0.0033924843423799585,13,ex_dividend,2026-06-30,2026-07-03
+TPEx ex-dividend preview,12,0.003131524008350731,12,ex_dividend,2026-06-23,2026-07-01
+TWSE disposition securities,12,0.003131524008350731,12,disposition,2026-06-17,2026-07-01
+TPEx attention securities,11,0.002870563674321503,9,attention,2026-07-01,2026-07-02
+TPEx disposition securities,8,0.0020876826722338203,8,disposition,2026-06-16,2026-06-23
+TPEx material information,7,0.0018267223382045928,4,ex_dividend | material_info,2026-07-02,2026-07-02
