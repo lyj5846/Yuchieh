@@ -17,9 +17,32 @@ VALIDATION_CONTRACT_PATH = PROJECT_ROOT / "validation_layer" / "validation_contr
 DECISION_PATH = PROJECT_ROOT / "decision_layer" / "main_pipeline_decision.md"
 FORMAL_STATUS_PATH = PROJECT_ROOT / "formal_layer" / "formal_status.md"
 FORMAL_CANDIDATES_PATH = PROJECT_ROOT / "formal_layer" / "formal_candidates.csv"
+FORMAL_TRACKING_CSV_PATH = PROJECT_ROOT / "formal_layer" / "formal_candidate_tracking.csv"
+FORMAL_TRACKING_MD_PATH = PROJECT_ROOT / "formal_layer" / "formal_candidate_tracking.md"
 MAIN_MODEL_DECISION_PATH = PROJECT_ROOT / "decision_layer" / "main_model_decision.json"
 MAIN_MODEL_SCORES_PATH = PROJECT_ROOT / "model_layer" / "main_model_scores.csv"
 MAIN_MODEL_VALIDATION_SUMMARY_PATH = PROJECT_ROOT / "validation_layer" / "main_model_validation_summary.csv"
+
+TRACKING_COLUMNS = [
+    "as_of_date",
+    "signal_date",
+    "stock_id",
+    "stock_name",
+    "research_score",
+    "daily_rank",
+    "buy_date",
+    "buy_open",
+    "target_close_plus3",
+    "risk_low_minus3",
+    "observed_trading_days",
+    "days_remaining",
+    "latest_close_return",
+    "max_close_return_so_far",
+    "min_low_return_so_far",
+    "hit_plus3_close_date",
+    "hit_minus3_low_date",
+    "tracking_status",
+]
 
 
 def read_config() -> dict:
@@ -80,6 +103,10 @@ def fmt_pct(value: str | int | float | None) -> str:
     if parsed is None:
         return "N/A"
     return f"{parsed:.2%}"
+
+
+def sort_key_date(row: dict) -> datetime:
+    return parse_date(str(row["日期"]))
 
 
 def validate_inputs(config: dict) -> dict[str, Path]:
@@ -214,21 +241,214 @@ def approved_main_model(decision: dict) -> bool:
     )
 
 
-def latest_model_candidates(decision: dict, latest_date: str) -> list[dict]:
-    if not MAIN_MODEL_SCORES_PATH.exists():
+def latest_model_candidates(decision: dict, latest_date: str, config: dict) -> list[dict]:
+    stock_by_id = read_stock_rows(Path(config["allowed_inputs"]["stock_daily_all"]))
+    score_rows = read_model_scores()
+    if not score_rows:
         fail("approved main model is missing model_layer/main_model_scores.csv")
+    gate = parse_float(decision.get("selected_gate"))
+    replay_candidates = select_replay_candidates(score_rows, stock_by_id, latest_date, gate)
+    return [row for row in replay_candidates if str(row.get("日期", "")) == latest_date]
+
+
+def read_stock_rows(stock_path: Path) -> dict[str, list[dict]]:
+    with stock_path.open("r", encoding="utf-8-sig", newline="") as f:
+        rows = list(csv.DictReader(f))
+    by_stock: dict[str, list[dict]] = {}
+    for row in rows:
+        stock_id = str(row.get("股票代號", "")).strip()
+        if not stock_id:
+            continue
+        by_stock.setdefault(stock_id, []).append(row)
+    for stock_rows in by_stock.values():
+        stock_rows.sort(key=sort_key_date)
+        for index, row in enumerate(stock_rows):
+            row["_trading_index"] = index
+    return by_stock
+
+
+def read_model_scores() -> list[dict]:
+    if not MAIN_MODEL_SCORES_PATH.exists():
+        return []
     with MAIN_MODEL_SCORES_PATH.open("r", encoding="utf-8-sig", newline="") as f:
-        reader = csv.DictReader(f)
-        rows = [row for row in reader if row.get("日期") == latest_date]
-    if not rows:
-        fail(f"main model scores do not contain latest raw data date: {latest_date}")
+        rows = list(csv.DictReader(f))
     for row in rows:
         row["_score"] = parse_float(row.get("integrated_research_score")) or float("-inf")
+    return rows
+
+
+def select_replay_candidates(score_rows: list[dict], stock_by_id: dict[str, list[dict]], latest_date: str, gate: float | None) -> list[dict]:
+    score_rows = [row for row in score_rows if str(row.get("日期", "")) <= latest_date]
+    signal_dates = sorted({str(row["日期"]) for row in score_rows})
+    replay_dates = set(signal_dates[-10:])
+    rows_by_date: dict[str, list[dict]] = {}
+    for row in score_rows:
+        rows_by_date.setdefault(str(row["日期"]), []).append(row)
+
+    selected: list[dict] = []
+    last_pick_index: dict[str, int] = {}
+    for signal_date in signal_dates:
+        day_rows = sorted(rows_by_date.get(signal_date, []), key=lambda row: row["_score"], reverse=True)
+        if not day_rows:
+            continue
+        if gate is not None and day_rows[0]["_score"] < gate:
+            continue
+        selected_today = 0
+        for row in day_rows:
+            stock_id = str(row.get("股票代號", "")).strip()
+            stock_rows = stock_by_id.get(stock_id, [])
+            price_row = next((item for item in stock_rows if item.get("日期") == signal_date), None)
+            if not price_row:
+                continue
+            stock_index = int(price_row["_trading_index"])
+            if stock_id in last_pick_index and stock_index - last_pick_index[stock_id] <= 10:
+                continue
+            last_pick_index[stock_id] = stock_index
+            selected_today += 1
+            if signal_date in replay_dates:
+                selected.append(row)
+            if selected_today >= 3:
+                break
+    return selected
+
+
+def track_one_candidate(candidate: dict, stock_by_id: dict[str, list[dict]], as_of_date: str) -> dict:
+    stock_id = str(candidate.get("股票代號", "")).strip()
+    signal_date = str(candidate.get("日期", ""))
+    stock_rows = stock_by_id.get(stock_id, [])
+    signal_row = next((row for row in stock_rows if row.get("日期") == signal_date), None)
+    base = {
+        "as_of_date": as_of_date,
+        "signal_date": signal_date,
+        "stock_id": stock_id,
+        "stock_name": candidate.get("股票名稱", ""),
+        "research_score": fmt_float(candidate.get("integrated_research_score")),
+        "daily_rank": fmt_float(candidate.get("daily_rank"), digits=0),
+    }
+    if not signal_row:
+        return {**base, "tracking_status": "missing_signal_price"}
+    next_index = int(signal_row["_trading_index"]) + 1
+    if next_index >= len(stock_rows):
+        return {
+            **base,
+            "buy_date": "",
+            "buy_open": "",
+            "observed_trading_days": 0,
+            "days_remaining": 10,
+            "tracking_status": "not_started",
+        }
+    buy_row = stock_rows[next_index]
+    buy_open = parse_float(buy_row.get("開盤價"))
+    if buy_open is None or buy_open <= 0:
+        return {
+            **base,
+            "buy_date": buy_row.get("日期", ""),
+            "buy_open": "",
+            "observed_trading_days": 0,
+            "days_remaining": 10,
+            "tracking_status": "not_started",
+        }
+    future_rows = [
+        row
+        for row in stock_rows[next_index : next_index + 10]
+        if str(row.get("日期", "")) <= as_of_date
+    ]
+    target_close = buy_open * 1.03
+    risk_low = buy_open * 0.97
+    success_date = ""
+    drawdown_date = ""
+    max_close_return = None
+    min_low_return = None
+    latest_close_return = None
+    for row in future_rows:
+        close = parse_float(row.get("收盤價"))
+        low = parse_float(row.get("最低價"))
+        if close is not None:
+            close_return = close / buy_open - 1.0
+            max_close_return = close_return if max_close_return is None else max(max_close_return, close_return)
+            latest_close_return = close_return
+            if not success_date and close >= target_close:
+                success_date = str(row.get("日期", ""))
+        if low is not None:
+            low_return = low / buy_open - 1.0
+            min_low_return = low_return if min_low_return is None else min(min_low_return, low_return)
+            if not drawdown_date and low <= risk_low:
+                drawdown_date = str(row.get("日期", ""))
+    observed_days = len(future_rows)
+    if success_date:
+        status = "success"
+    elif observed_days >= 10:
+        status = "failure"
+    else:
+        status = "tracking"
+    return {
+        **base,
+        "buy_date": buy_row.get("日期", ""),
+        "buy_open": fmt_float(buy_open),
+        "target_close_plus3": fmt_float(target_close),
+        "risk_low_minus3": fmt_float(risk_low),
+        "observed_trading_days": observed_days,
+        "days_remaining": max(0, 10 - observed_days),
+        "latest_close_return": fmt_float(latest_close_return),
+        "max_close_return_so_far": fmt_float(max_close_return),
+        "min_low_return_so_far": fmt_float(min_low_return),
+        "hit_plus3_close_date": success_date,
+        "hit_minus3_low_date": drawdown_date,
+        "tracking_status": status,
+    }
+
+
+def write_tracking_replay(config: dict, latest_date: str, decision: dict) -> None:
+    stock_by_id = read_stock_rows(Path(config["allowed_inputs"]["stock_daily_all"]))
+    score_rows = read_model_scores()
     gate = parse_float(decision.get("selected_gate"))
-    if gate is not None and max(row["_score"] for row in rows) < gate:
-        return []
-    rows.sort(key=lambda row: row["_score"], reverse=True)
-    return rows[:3]
+    replay_candidates = select_replay_candidates(score_rows, stock_by_id, latest_date, gate)
+    tracking_rows = [track_one_candidate(row, stock_by_id, latest_date) for row in replay_candidates]
+    with FORMAL_TRACKING_CSV_PATH.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=TRACKING_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(tracking_rows)
+
+    status_counts: dict[str, int] = {}
+    for row in tracking_rows:
+        status_counts[row.get("tracking_status", "unknown")] = status_counts.get(row.get("tracking_status", "unknown"), 0) + 1
+    lines = [
+        "# Formal Candidate Tracking Replay",
+        "",
+        f"- Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"- As-of date: {latest_date}",
+        "- Scope: last 10 signal dates from the formal main-model score file.",
+        "- No-lookahead rule: candidates are selected by signal-day research score and the selected gate; outcomes are checked only after selection.",
+        "- Buy assumption: next trading day open.",
+        "- Success rule: within the next 10 trading days, any close reaches buy open +3%.",
+        "- Drawdown: -3% low is tracked as risk context, not automatic failure.",
+        "- research_score is not a calibrated probability.",
+        "",
+        "## Status Counts",
+        "",
+    ]
+    if status_counts:
+        for status, count in sorted(status_counts.items()):
+            lines.append(f"- {status}: {count}")
+    else:
+        lines.append("- no replay candidates")
+    lines.extend(["", "## Files", "", f"- `{FORMAL_TRACKING_CSV_PATH.relative_to(PROJECT_ROOT)}`", ""])
+    FORMAL_TRACKING_MD_PATH.write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_empty_tracking(latest_date: str, reason: str) -> None:
+    with FORMAL_TRACKING_CSV_PATH.open("w", encoding="utf-8", newline="") as f:
+        csv.DictWriter(f, fieldnames=TRACKING_COLUMNS).writeheader()
+    lines = [
+        "# Formal Candidate Tracking Replay",
+        "",
+        f"- Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"- As-of date: {latest_date}",
+        f"- Status: empty",
+        f"- Reason: {reason}",
+        "",
+    ]
+    FORMAL_TRACKING_MD_PATH.write_text("\n".join(lines), encoding="utf-8")
 
 
 def main_model_holdout_summary() -> dict:
@@ -276,7 +496,7 @@ def write_formal_files(config: dict, latest_date: str, reason: str, decision: di
                 "research_score",
                 "calibrated_success_rate",
                 "calibration_sample_count",
-                "actual_hit_rate",
+                "strategy_backtest_hit_rate",
                 "avg_10d_high_close_return",
                 "main_basis",
                 "main_risk",
@@ -313,6 +533,10 @@ def write_formal_files(config: dict, latest_date: str, reason: str, decision: di
                         "tracking",
                     ]
                 )
+    if approved_main_model(decision or {}):
+        write_tracking_replay(config, latest_date, decision or {})
+    else:
+        write_empty_tracking(latest_date, "main model is not approved for formal tracking replay")
 
 
 def main() -> None:
@@ -330,7 +554,7 @@ def main() -> None:
     write_layer_contracts(stock_stats, market_stats, paths["theme_group"])
     main_model_decision = read_main_model_decision()
     if approved_main_model(main_model_decision):
-        candidates = latest_model_candidates(main_model_decision, latest_date)
+        candidates = latest_model_candidates(main_model_decision, latest_date, config)
         if candidates:
             reason = "single main model passed candidate-region holdout validation"
         else:

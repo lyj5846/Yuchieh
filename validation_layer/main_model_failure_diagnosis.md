@@ -1,6 +1,6 @@
 # Main Model Failure Diagnosis
 
-- Generated: 2026-07-03 15:07:26
+- Generated: 2026-07-03 15:27:14
 - Data latest date: 2026-06-30
 - Main model status: `passed_holdout_validation`
 - Formal output: unchanged

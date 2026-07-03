@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-03 15:07:50",
+  "generated_at": "2026-07-03 15:27:40",
   "status": "learnable_signal_present",
   "recommended_next_step": "feature_screen_then_retrain",
   "reason": "三份核心資料加已批准候選特徵內，有跨 train/development/holdout 方向穩定的 +3% 成功、回撤風險旁支與報酬排序訊號。",
