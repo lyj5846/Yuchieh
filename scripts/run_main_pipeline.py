@@ -514,7 +514,7 @@ def merge_signal_ledger(
                 existing.add(signal_key(row))
 
     ledger_rows.extend(additions)
-    fill_missing_ledger_consecutive_counts(ledger_rows, top_sets)
+    update_ledger_consecutive_counts(ledger_rows, latest_date, top_sets)
     updated = [track_signal_record(row, stock_by_id, latest_date, generated) for row in ledger_rows]
     updated.sort(key=lambda row: (row.get("signal_date", ""), int(float(row.get("original_rank") or 999999)), row.get("stock_id", "")))
     write_csv_rows(FORMAL_SIGNAL_LEDGER_PATH, LEDGER_COLUMNS, updated)
@@ -583,30 +583,36 @@ def raw_top_stock_sets(limit: int = 10) -> dict[str, set[str]]:
     return top_sets
 
 
-def consecutive_recommendation_count(stock_id: str, signal_date: str, top_sets: dict[str, set[str]]) -> int:
-    dates = [date for date in top_sets if date <= signal_date]
-    dates.sort(key=parse_date, reverse=True)
+def score_dates(top_sets: dict[str, set[str]]) -> list[str]:
+    return sorted(top_sets, key=parse_date)
+
+
+def consecutive_recommendation_count(stock_id: str, signal_date: str, as_of_date: str, top_sets: dict[str, set[str]]) -> int:
+    dates = score_dates(top_sets)
+    if signal_date not in top_sets:
+        return 1
+    signal_index = dates.index(signal_date)
     count = 0
-    for date in dates:
-        if stock_id not in top_sets.get(date, set()):
+    for date in dates[signal_index:]:
+        if date > as_of_date:
             break
-        count += 1
-    return count
+        if dates.index(date) - signal_index > 10:
+            break
+        if stock_id in top_sets.get(date, set()):
+            count += 1
+    return max(1, count)
 
 
 def attach_consecutive_counts(rows: list[dict], signal_date: str, top_sets: dict[str, set[str]]) -> None:
     for row in rows:
-        stock_id = str(row.get("股票代號", ""))
-        row["consecutive_recommendation_count"] = consecutive_recommendation_count(stock_id, signal_date, top_sets)
+        row["consecutive_recommendation_count"] = 1
 
 
-def fill_missing_ledger_consecutive_counts(ledger_rows: list[dict], top_sets: dict[str, set[str]]) -> None:
+def update_ledger_consecutive_counts(ledger_rows: list[dict], as_of_date: str, top_sets: dict[str, set[str]]) -> None:
     for row in ledger_rows:
-        if str(row.get("consecutive_recommendation_count", "")).strip():
-            continue
         stock_id = str(row.get("stock_id", ""))
         signal_date = str(row.get("signal_date", ""))
-        row["consecutive_recommendation_count"] = str(consecutive_recommendation_count(stock_id, signal_date, top_sets))
+        row["consecutive_recommendation_count"] = str(consecutive_recommendation_count(stock_id, signal_date, as_of_date, top_sets))
 
 
 def find_recent_ledger_row(raw_row: dict, ledger_rows: list[dict], stock_by_id: dict[str, list[dict]], latest_date: str) -> dict | None:
@@ -650,7 +656,7 @@ def continuation_rows(config: dict, latest_date: str, ledger_rows: list[dict], t
                 "stock_name": raw.get("股票名稱", ""),
                 "raw_rank": fmt_float(raw.get("daily_rank"), digits=0),
                 "research_score": fmt_float(raw.get("integrated_research_score")),
-                "consecutive_recommendation_count": str(consecutive_recommendation_count(stock_id, latest_date, top_sets)),
+                "consecutive_recommendation_count": prior.get("consecutive_recommendation_count", ""),
                 "previous_signal_date": prior.get("signal_date", ""),
                 "previous_tracking_status": prior.get("tracking_status", ""),
                 "max_close_return_so_far": prior.get("max_close_return_so_far", ""),
@@ -703,6 +709,7 @@ def write_daily_report(latest_date: str, today_candidates: list[dict], continuat
         {
             "訊號日": row.get("signal_date", ""),
             "股票": f"{row.get('stock_id', '')} {row.get('stock_name', '')}",
+            "連續被推薦次數": row.get("consecutive_recommendation_count", ""),
             "買入日": row.get("buy_date", ""),
             "已追蹤日": row.get("observed_trading_days", ""),
             "最高收盤報酬": pct_text(row.get("max_close_return_so_far", "")),
@@ -730,7 +737,7 @@ def write_daily_report(latest_date: str, today_candidates: list[dict], continuat
         "",
         "## 正式候選追蹤",
         "",
-        *md_table(["訊號日", "股票", "買入日", "已追蹤日", "最高收盤報酬", "+3%達成日", "-3%風險日", "狀態"], tracking_display),
+        *md_table(["訊號日", "股票", "連續被推薦次數", "買入日", "已追蹤日", "最高收盤報酬", "+3%達成日", "-3%風險日", "狀態"], tracking_display),
         "",
     ]
     FORMAL_DAILY_REPORT_MD_PATH.write_text("\n".join(lines), encoding="utf-8")
@@ -741,7 +748,7 @@ def refresh_existing_ledger(config: dict, latest_date: str, generated: str) -> l
     if not ledger_rows:
         return []
     stock_by_id = read_stock_rows(Path(config["allowed_inputs"]["stock_daily_all"]))
-    fill_missing_ledger_consecutive_counts(ledger_rows, raw_top_stock_sets(limit=10))
+    update_ledger_consecutive_counts(ledger_rows, latest_date, raw_top_stock_sets(limit=10))
     updated = [track_signal_record(row, stock_by_id, latest_date, generated) for row in ledger_rows]
     updated.sort(key=lambda row: (row.get("signal_date", ""), int(float(row.get("original_rank") or 999999)), row.get("stock_id", "")))
     write_csv_rows(FORMAL_SIGNAL_LEDGER_PATH, LEDGER_COLUMNS, updated)

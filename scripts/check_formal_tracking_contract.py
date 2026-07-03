@@ -46,6 +46,15 @@ ALLOWED_TRACKING_STATUS = {
     "missing_signal_price",
 }
 
+EXPECTED_0630_EPISODE_COUNTS = {
+    ("2026-06-18", "2409"): "8",
+    ("2026-06-22", "2610"): "7",
+    ("2026-06-25", "2618"): "4",
+    ("2026-06-30", "6515"): "1",
+    ("2026-06-30", "2404"): "1",
+    ("2026-06-30", "6669"): "1",
+}
+
 
 def fail(message: str) -> None:
     raise SystemExit(f"FAIL: {message}")
@@ -128,6 +137,9 @@ def check_ledger() -> list[str]:
         count = row.get("consecutive_recommendation_count", "")
         if count and (not count.isdigit() or int(count) < 1):
             issues.append(f"invalid consecutive_recommendation_count for {key[0]} {key[1]}: {count}")
+        expected_count = EXPECTED_0630_EPISODE_COUNTS.get(key)
+        if expected_count is not None and count != expected_count:
+            issues.append(f"episode count mismatch for {key[0]} {key[1]}: {count} != {expected_count}")
 
     rows_0630 = [row for row in rows if row.get("signal_date") == "2026-06-30"]
     stocks_0630 = {row.get("stock_id") for row in rows_0630}
@@ -146,6 +158,25 @@ def check_ledger() -> list[str]:
     for stock in ["2409", "2610", "2618"]:
         if stock not in {row.get("stock_id") for row in rows}:
             issues.append(f"ledger missing previously tracked high-score stock: {stock}")
+    return issues
+
+
+def check_tracking_csv() -> list[str]:
+    issues: list[str] = []
+    rows = read_csv(TRACKING_CSV_PATH)
+    if not rows:
+        issues.append("formal_candidate_tracking.csv is empty")
+        return issues
+    columns = set(rows[0])
+    if "consecutive_recommendation_count" not in columns:
+        issues.append("formal_candidate_tracking.csv must include consecutive_recommendation_count")
+    for row in rows:
+        count = row.get("consecutive_recommendation_count", "")
+        if not count.isdigit() or int(count) < 1:
+            issues.append(f"tracking row {row.get('signal_date')} {row.get('stock_id')} must have positive consecutive_recommendation_count")
+        expected_count = EXPECTED_0630_EPISODE_COUNTS.get((row.get("signal_date", ""), row.get("stock_id", "")))
+        if expected_count is not None and count != expected_count:
+            issues.append(f"tracking episode count mismatch for {row.get('signal_date')} {row.get('stock_id')}: {count} != {expected_count}")
     return issues
 
 
@@ -169,6 +200,15 @@ def check_daily_report() -> list[str]:
     for needle in required_text:
         if needle not in text:
             issues.append(f"daily report missing text: {needle}")
+    if text.count("連續被推薦次數") < 3:
+        issues.append("daily report must show 連續被推薦次數 in new candidates, continuations, and tracking sections")
+    for expected_line in [
+        "| 2409 友達 | 1 | 2.171250 | 8 | 2026-06-18 | success | 11.04% |",
+        "| 2610 華航 | 2 | 1.844796 | 7 | 2026-06-22 | success | 10.25% |",
+        "| 2618 長榮航 | 3 | 1.780129 | 4 | 2026-06-25 | tracking | 1.01% |",
+    ]:
+        if expected_line not in text:
+            issues.append(f"daily report episode-count line mismatch: {expected_line}")
     if "個股成功率" in text and "不是個股成功率" not in text:
         issues.append("daily report appears to describe strategy rate as individual probability")
     return issues
@@ -180,6 +220,7 @@ def main() -> None:
     if not issues:
         issues.extend(check_formal_candidates())
         issues.extend(check_ledger())
+        issues.extend(check_tracking_csv())
         issues.extend(check_daily_report())
     if issues:
         fail("formal tracking contract violations:\n" + "\n".join(issues))

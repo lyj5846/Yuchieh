@@ -1,6 +1,6 @@
 # Target Drawdown Side-Label Decision
 
-- Generated: 2026-07-03 16:12:48
+- Generated: 2026-07-03 20:23:09
 - Data latest date: 2026-06-30
 - Decision status: `side_label_target_contract_ready`
 - Formal output: unchanged by this review.
