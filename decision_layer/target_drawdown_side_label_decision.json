@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-07-03 09:13:19",
+  "data_latest_date": "2026-06-30",
+  "decision_status": "side_label_target_contract_ready",
+  "formal_output_changed": false,
+  "recommended_next_step": "update_main_label_contract_to_drawdown_side_labels",
+  "red_light_required_for_next_step": true,
+  "reasons": [
+    "primary success remains the 10-day +3% close touch rule",
+    "-3% drawdown is retained as a risk side label instead of automatic failure",
+    "all splits have enough completed rows and recovered success examples"
+  ],
+  "holdout": {
+    "section": "overall",
+    "split": "holdout",
+    "group": "holdout",
+    "rows": 12847,
+    "days": 51,
+    "stocks": 252,
+    "old_touch_success_count": 9241,
+    "old_touch_success_rate": 0.7193119016112711,
+    "risk_adjusted_hard_success_count": 5038,
+    "risk_adjusted_hard_success_rate": 0.39215381022806883,
+    "proposed_primary_success_count": 9241,
+    "proposed_primary_success_rate": 0.7193119016112711,
+    "clean_success_count": 5038,
+    "clean_success_rate": 0.39215381022806883,
+    "painful_success_count": 4203,
+    "painful_success_rate": 0.3271580913832023,
+    "painful_success_among_success_rate": 0.4548209068282653,
+    "minus3_anytime_rate": 0.7097376819490931,
+    "minus3_before_or_same_success_rate": 0.3271580913832023,
+    "same_day_profit_and_minus3_count": 322,
+    "avg_10d_high_close_return": 0.12363156032882927,
+    "avg_day10_close_return": 0.05743057320756205,
+    "avg_max_adverse_return_10d": -0.08053192230668745,
+    "top_stock_share": 0.0039697983965128044,
+    "top_industry_share": 0.10321475830933292
+  }
+}

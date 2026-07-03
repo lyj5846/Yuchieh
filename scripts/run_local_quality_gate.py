@@ -31,6 +31,8 @@ def main() -> None:
         "scripts/check_data_learnability_review.py",
         "scripts/run_target_sensitivity_review.py",
         "scripts/check_target_sensitivity_review.py",
+        "scripts/run_target_drawdown_side_label_review.py",
+        "scripts/check_target_drawdown_side_label_review.py",
         "scripts/run_data_enrichment_review.py",
         "scripts/check_data_enrichment_review.py",
         "scripts/run_event_risk_collector_spec.py",
