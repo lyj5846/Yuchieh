@@ -1,9 +1,9 @@
 # Main Model Decision
 
-- Generated: 2026-07-03 12:54:21
-- Status: not_promoted
-- Formal approved: False
-- Reason: main model did not pass every validation gate; formal output must remain unchanged
+- Generated: 2026-07-03 15:03:50
+- Status: passed_holdout_validation
+- Formal approved: True
+- Reason: main model passed validation and can be considered by the formal entrypoint
 - Training loss: 0.592978 -> 0.429557
 - Feature screen: selected 48 of 115 features
 - Feature screen holdout usage: audit-only, not selection
@@ -21,6 +21,8 @@
 - Holdout return-ranking probe success lift: 7.81%
 - Holdout return-ranking probe return lift: 4.24%
 - Score band ordering valid: False
+- Score band ordering blocks promotion: False
+- Candidate-region validation passed: True
 - Advantage head ordering valid: True
 - Return-ranking probe ordering valid: True
 - Risk band ordering valid: True

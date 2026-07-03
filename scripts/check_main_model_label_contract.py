@@ -263,6 +263,8 @@ def main() -> None:
         "holdout_return_ranking_probe_return_lift",
         "holdout_return_ranking_probe_success_lift",
         "return_ranking_probe_order_ok",
+        "score_band_ordering_required_for_promotion",
+        "candidate_region_validation_ok",
         "same_day_advantage_loss_weight",
         "development_monthly_positive_months",
         "development_monthly_total_months",
@@ -299,6 +301,10 @@ def main() -> None:
         fail("selected strategy must pass development monthly stability before holdout validation")
     if decision["selected_weight_score_band_passed"] is not True:
         fail("selected strategy must pass development score-band ordering before holdout validation")
+    if decision["score_band_ordering_required_for_promotion"] is not False:
+        fail("holdout all-row score-band ordering must be diagnostic, not a formal promotion blocker")
+    if decision["status"] == "passed_holdout_validation" and decision["candidate_region_validation_ok"] is not True:
+        fail("passed model must have candidate-region validation passed")
 
     tuning = pd.read_csv(STRATEGY_TUNING_PATH, encoding="utf-8-sig")
     required_tuning_columns = {

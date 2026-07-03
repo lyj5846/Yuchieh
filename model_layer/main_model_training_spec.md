@@ -1,6 +1,6 @@
 # Main Model Training Spec
 
-- Generated: 2026-07-03 12:54:21
+- Generated: 2026-07-03 15:03:50
 - Confirmed plan: `drawdown_side_label_main_model_training_plan`
 - Core data sources: three approved CSV inputs.
 - Candidate feature input: approved attention/disposition events only.
@@ -21,6 +21,7 @@
 - same_day_advantage loss weight: 3.0.
 - Strategy tuning: selected on development with monthly stability and a balanced success/return objective.
 - Strategy tuning requires development score bands to improve success, same-day advantage, and high-close return from low to high score.
+- Holdout promotion uses candidate-region Top3 validation; all-row score-band ordering is retained as calibration diagnostics.
 - Development monthly stability requires most active months to have both success lift and return lift above zero.
 - Feature lookback: 20 trading days.
 - Episode gap: 10 trading days.

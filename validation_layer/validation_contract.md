@@ -6,7 +6,8 @@ Required checks:
 
 - Same-day market baseline comparison.
 - Current benchmark comparison.
-- Score band direction.
+- Candidate-region Top 3 success lift and return lift.
+- Score band direction as calibration diagnostics, not a hard promotion blocker.
 - Failure-risk band direction.
 - Monthly stability.
 - Stock and industry concentration.

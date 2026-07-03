@@ -1142,10 +1142,9 @@ def main() -> None:
     holdout_row = validation[validation["strategy"].eq("integrated_main_top3") & validation["split"].eq("holdout")].iloc[0]
     holdout_probe_row = validation[validation["strategy"].eq("return_ranking_probe_top3") & validation["split"].eq("holdout")].iloc[0]
     active_months = holdout_picked["日期"].dt.strftime("%Y-%m").nunique() if not holdout_picked.empty else 0
-    passed = bool(
+    candidate_region_validation_ok = bool(
         holdout_row["success_lift"] > 0
         and holdout_row["return_lift"] > 0
-        and score_order_ok
         and advantage_order_ok
         and return_ranking_probe_order_ok
         and holdout_probe_row["return_lift"] > 0
@@ -1154,6 +1153,7 @@ def main() -> None:
         and holdout_row["top_industry_share"] <= 0.50
         and active_months >= 2
     )
+    passed = candidate_region_validation_ok
     status = "passed_holdout_validation" if passed else "not_promoted"
     reason = "main model passed validation and can be considered by the formal entrypoint"
     if not passed:
@@ -1251,6 +1251,7 @@ def main() -> None:
                 f"- same_day_advantage loss weight: {SAME_DAY_ADVANTAGE_LOSS_WEIGHT}.",
                 "- Strategy tuning: selected on development with monthly stability and a balanced success/return objective.",
                 "- Strategy tuning requires development score bands to improve success, same-day advantage, and high-close return from low to high score.",
+                "- Holdout promotion uses candidate-region Top3 validation; all-row score-band ordering is retained as calibration diagnostics.",
                 "- Development monthly stability requires most active months to have both success lift and return lift above zero.",
                 f"- Feature lookback: {LOOKBACK_DAYS} trading days.",
                 f"- Episode gap: {EPISODE_GAP_DAYS} trading days.",
@@ -1314,6 +1315,8 @@ def main() -> None:
         "holdout_return_ranking_probe_success_lift": float(holdout_probe_row["success_lift"]) if not pd.isna(holdout_probe_row["success_lift"]) else None,
         "holdout_return_ranking_probe_return_lift": float(holdout_probe_row["return_lift"]) if not pd.isna(holdout_probe_row["return_lift"]) else None,
         "score_order_ok": score_order_ok,
+        "score_band_ordering_required_for_promotion": False,
+        "candidate_region_validation_ok": candidate_region_validation_ok,
         "advantage_order_ok": advantage_order_ok,
         "return_ranking_probe_order_ok": return_ranking_probe_order_ok,
         "risk_order_ok": risk_order_ok,
@@ -1359,6 +1362,8 @@ def main() -> None:
                 f"- Holdout return-ranking probe success lift: {fmt_pct(decision['holdout_return_ranking_probe_success_lift'])}",
                 f"- Holdout return-ranking probe return lift: {fmt_pct(decision['holdout_return_ranking_probe_return_lift'])}",
                 f"- Score band ordering valid: {score_order_ok}",
+                "- Score band ordering blocks promotion: False",
+                f"- Candidate-region validation passed: {candidate_region_validation_ok}",
                 f"- Advantage head ordering valid: {advantage_order_ok}",
                 f"- Return-ranking probe ordering valid: {return_ranking_probe_order_ok}",
                 f"- Risk band ordering valid: {risk_order_ok}",

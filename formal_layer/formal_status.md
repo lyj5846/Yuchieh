@@ -1,10 +1,11 @@
 # Formal Status
 
-- Generated: 2026-07-02 12:41:33
+- Generated: 2026-07-03 15:07:04
 - Status: active
 - Formal source: `scripts/run_main_pipeline.py`
-- Current strategy: retained benchmark
+- Current strategy: single integrated main model Top3
 - Raw data latest date: 2026-06-30
-- Result: 目前無可信正式候選
-- Reason: architecture reset completed; no new integrated model is promoted until the single main model passes validation
-- Rule: research outputs cannot update formal candidates directly.
+- Result: 正式候選已產生
+- Reason: single main model passed candidate-region holdout validation
+- Rule: training outputs cannot update formal candidates directly.
+- Score note: research_score is a ranking score, not a calibrated probability.

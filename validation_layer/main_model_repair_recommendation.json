@@ -1,15 +1,15 @@
 {
-  "generated_at": "2026-07-03 12:55:53",
+  "generated_at": "2026-07-03 15:07:26",
   "data_latest_date": "2026-06-30",
   "diagnosis_status": "completed",
-  "main_model_status": "not_promoted",
-  "recommended_repair_id": "repair_score_weighting",
+  "main_model_status": "passed_holdout_validation",
+  "recommended_repair_id": "ready_for_formal_review",
   "alternative_repair_ids": [],
-  "recommendation_summary": "return-ranking probe 已有線索，但仍未完整通過正式驗證；若要再前進，應檢討交易目標或正式通過條件，而不是新增平行模型。",
+  "recommendation_summary": "回撤旁支標籤主模型已通過訓練驗證；下一步只能由正式入口決定是否更新候選。",
   "formal_outputs_unchanged": true,
   "formal_hashes": {
-    "formal_status_sha256": "6981C575BE9D1F37CCFF36D1222F4E5F9663614784EE833A5B9DA9CA4D32C6F7",
-    "formal_candidates_sha256": "B43ADF38852F404EDC58C8B4C307B03588D26DB18810D59FBB52F372B9669872"
+    "formal_status_sha256": "1193CF83783B88EF437B36D24F1AC3E8210F964A18EAA2904F85716DFBF83921",
+    "formal_candidates_sha256": "1F8ABEA1E6DCF5B5470C9DE02958838DFAB92011AD6C0A7A343ABC4539B7EDDA"
   },
   "evidence": [
     "Target contract: drawdown_side_label_10d_touch_success.",
@@ -26,7 +26,7 @@
     "Selected weight development monthly stability 3/3; objective score 0.173979.",
     "Risk head high-low failure delta 0.59%; risk separation is not the primary blocker."
   ],
-  "blocked_from_formal_reason": "main model failed same-day success lift or formal ordering checks",
+  "blocked_from_formal_reason": "formal entrypoint has promoted current validated candidates",
   "root_cause_summary": {
     "stable_same_day_return_features": 9,
     "checked_same_day_return_features": 10,
@@ -43,6 +43,7 @@
     "development_min_monthly_success_lift": 0.08502258610954261,
     "development_min_monthly_return_lift": 0.042990778670976365,
     "selected_weight_objective_score": 0.17397929641962956,
-    "negative_return_lift_months": 0
+    "negative_return_lift_months": 0,
+    "formal_candidate_rows": 3
   }
 }

@@ -61,6 +61,13 @@ def sha256(path: Path) -> str:
     return h.hexdigest().upper()
 
 
+def formal_candidate_row_count() -> int:
+    if not FORMAL_CANDIDATES_PATH.exists():
+        return 0
+    with FORMAL_CANDIDATES_PATH.open("r", encoding="utf-8-sig") as f:
+        return max(0, sum(1 for _ in f) - 1)
+
+
 def read_json(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
@@ -927,6 +934,14 @@ def main() -> None:
         "formal_status_sha256": sha256(FORMAL_STATUS_PATH),
         "formal_candidates_sha256": sha256(FORMAL_CANDIDATES_PATH),
     }
+    formal_candidate_rows = formal_candidate_row_count()
+    if formal_approved and formal_candidate_rows > 0:
+        formal_reason = "formal entrypoint has promoted current validated candidates"
+    elif formal_approved:
+        formal_reason = "formal entrypoint may promote candidates when the latest date passes the selected score gate"
+    else:
+        formal_reason = "main model failed same-day success lift or formal ordering checks"
+
     recommendation = {
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "data_latest_date": data_latest_date,
@@ -938,9 +953,7 @@ def main() -> None:
         "formal_outputs_unchanged": True,
         "formal_hashes": formal_hashes,
         "evidence": evidence,
-        "blocked_from_formal_reason": (
-            "formal entrypoint has not run" if formal_approved else "main model failed same-day success lift or formal ordering checks"
-        ),
+        "blocked_from_formal_reason": formal_reason,
         "root_cause_summary": {
             "stable_same_day_return_features": same_day_stable_features,
             "checked_same_day_return_features": same_day_checked_features,
@@ -958,6 +971,7 @@ def main() -> None:
             "development_min_monthly_return_lift": dev_min_monthly_return_lift,
             "selected_weight_objective_score": selected_objective_score,
             "negative_return_lift_months": negative_months,
+            "formal_candidate_rows": formal_candidate_rows,
         },
     }
     RECOMMENDATION_PATH.write_text(
