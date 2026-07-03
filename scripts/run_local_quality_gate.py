@@ -47,6 +47,7 @@ def main() -> None:
         "scripts/check_attention_disposition_feature_generation_check.py",
         "scripts/run_attention_disposition_model_input_approval_review.py",
         "scripts/check_attention_disposition_model_input_approval_review.py",
+        "scripts/check_attention_disposition_main_training_wiring.py",
         "scripts/check_target_redefinition_review.py",
         "scripts/check_architecture_contract.py",
         "scripts/validate_clean_project.py",

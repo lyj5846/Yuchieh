@@ -11,14 +11,8 @@ import pandas as pd
 from run_main_model_training_pipeline import (
     CONFIG_PATH,
     PROJECT_ROOT,
-    add_features,
-    add_labels,
-    add_relative_and_risk_labels,
+    build_training_frame,
     load_json,
-    normalize_market,
-    normalize_stock,
-    normalize_theme,
-    read_csv,
     split_name,
     validate_inputs,
 )
@@ -68,17 +62,11 @@ def pct(value: float | int | None) -> str:
 
 def build_review_frame(config: dict) -> tuple[pd.DataFrame, list[str], str]:
     paths = validate_inputs(config)
-    stock = normalize_stock(read_csv(paths["stock_daily_all"]))
-    market = normalize_market(read_csv(paths["market_daily"]))
-    theme = normalize_theme(read_csv(paths["theme_group"]))
-    stock_latest = stock["日期"].max()
-    market_latest = market["日期"].max()
+    stock_latest = pd.to_datetime(pd.read_csv(paths["stock_daily_all"], encoding="utf-8-sig", usecols=["日期"])["日期"]).max()
+    market_latest = pd.to_datetime(pd.read_csv(paths["market_daily"], encoding="utf-8-sig", usecols=["日期"])["日期"]).max()
     if stock_latest != market_latest:
         fail(f"stock and market latest dates differ: {stock_latest.date()} vs {market_latest.date()}")
-
-    labeled = add_labels(stock)
-    featured, feature_cols = add_features(labeled, market, theme)
-    reviewed = add_relative_and_risk_labels(featured)
+    reviewed, feature_cols = build_training_frame(config)
     reviewed["split"] = split_name(reviewed["日期"], reviewed["label_complete"], config)
     return reviewed, feature_cols, stock_latest.strftime("%Y-%m-%d")
 
@@ -241,7 +229,7 @@ def decide(feature_signal: pd.DataFrame, failure_profile: pd.DataFrame) -> dict:
     if stable_success_count >= 8 and stable_risk_filter_count >= 5 and stable_return_count >= 5:
         status = "learnable_signal_present"
         recommended = "feature_screen_then_retrain"
-        reason = "三份資料內有跨 train/development/holdout 方向穩定的成功、風險過濾與報酬排序訊號。"
+        reason = "三份核心資料加已批准候選特徵內，有跨 train/development/holdout 方向穩定的成功、風險過濾與報酬排序訊號。"
     elif stable_success_count >= 3 or stable_risk_filter_count >= 2 or stable_return_count >= 3:
         status = "weak_signal_but_not_enough_for_full_retrain"
         recommended = "feature_screen_before_any_retrain"
@@ -315,7 +303,7 @@ def write_review_md(data_latest: str, decision: dict, feature_signal: pd.DataFra
         "- This is not a probability model.",
         "- This does not update formal candidates.",
         "- This does not add a new model branch.",
-        "- It only decides whether the current three CSV inputs contain stable enough signal for the risk-adjusted target.",
+        "- It only decides whether the current core CSV inputs and approved candidate feature inputs contain stable enough signal for the risk-adjusted target.",
         "",
         "## Outputs",
         "",

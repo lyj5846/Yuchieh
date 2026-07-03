@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-07-03 00:06:49",
+  "generated_at": "2026-07-03 08:08:20",
   "status": "learnable_signal_present",
   "recommended_next_step": "feature_screen_then_retrain",
-  "reason": "三份資料內有跨 train/development/holdout 方向穩定的成功、風險過濾與報酬排序訊號。",
-  "stable_success_feature_count": 44,
-  "stable_risk_filter_feature_count": 61,
-  "stable_return_feature_count": 51,
+  "reason": "三份核心資料加已批准候選特徵內，有跨 train/development/holdout 方向穩定的成功、風險過濾與報酬排序訊號。",
+  "stable_success_feature_count": 47,
+  "stable_risk_filter_feature_count": 67,
+  "stable_return_feature_count": 55,
   "holdout_risk_adjusted_success_rate": 0.39215381022806883,
   "holdout_old_success_but_risk_failed_rate": 0.3271580913832023,
   "holdout_risk_failed_among_old_success": 0.4548209068282653,
@@ -42,7 +42,7 @@
     "return_vs_weighted_10",
     "return_vs_electronics_10",
     "same_day_return_rank_3",
-    "industry_ma_position_rank_20",
-    "industry_return_rank_10"
+    "attention_disposition_known_count_3d",
+    "industry_ma_position_rank_20"
   ]
 }

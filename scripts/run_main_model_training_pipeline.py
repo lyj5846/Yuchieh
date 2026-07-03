@@ -57,6 +57,15 @@ SAME_DAY_ADVANTAGE_LOSS_WEIGHT = 3.0
 FEATURE_SCREEN_MIN_ABS_CORR = 0.01
 FEATURE_SCREEN_MAX_FEATURES = 48
 FEATURE_SCREEN_MIN_FEATURES = 12
+ATTENTION_DISPOSITION_FEATURES = [
+    "attention_disposition_known_count_1d",
+    "attention_disposition_known_count_3d",
+    "attention_disposition_known_count_10d",
+    "attention_active_on_signal_date",
+    "disposition_active_on_signal_date",
+    "days_since_last_attention_disposition",
+    "has_attention_disposition_history_20d",
+]
 
 def fail(message: str) -> None:
     raise SystemExit(f"FAIL: {message}")
@@ -98,6 +107,30 @@ def validate_inputs(config: dict) -> dict[str, Path]:
     return paths
 
 
+def validate_candidate_feature_inputs(config: dict) -> dict[str, Path]:
+    candidates = config.get("candidate_model_feature_inputs", {})
+    if not candidates:
+        return {}
+    attention_candidate = candidates.get("attention_disposition_events")
+    if attention_candidate is None:
+        return {}
+    if not isinstance(attention_candidate, dict):
+        fail("candidate_model_feature_inputs.attention_disposition_events must be an object")
+    if attention_candidate.get("status") != "approved_for_next_training_candidate":
+        fail("attention/disposition candidate input is not approved for next training")
+    if attention_candidate.get("scope") != "attention_disposition_only":
+        fail("attention/disposition candidate scope must remain attention_disposition_only")
+    approval_path = attention_candidate.get("approval_decision")
+    if approval_path != "decision_layer\\attention_disposition_model_input_approval_decision.json":
+        fail("attention/disposition candidate approval decision path mismatch")
+    path = Path(str(attention_candidate.get("path", "")))
+    if path != PROJECT_ROOT / "inputs" / "event_risk_calendar_backfilled.csv":
+        fail("attention/disposition candidate input must use the approved backfilled event file")
+    if not path.exists():
+        fail(f"missing attention/disposition candidate input: {path}")
+    return {"attention_disposition_events": path}
+
+
 def read_csv(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, encoding="utf-8-sig")
 
@@ -137,6 +170,116 @@ def normalize_theme(theme: pd.DataFrame) -> pd.DataFrame:
     out["股票代號"] = out["股票代號"].astype(str).str.strip()
     keep = [c for c in ["股票代號", "股票名稱", "主分類", "子分類"] if c in out.columns]
     return out[keep].drop_duplicates("股票代號", keep="last")
+
+
+def normalize_stock_id(series: pd.Series) -> pd.Series:
+    return series.astype(str).str.replace(r"\.0$", "", regex=True).str.replace(r"\D", "", regex=True)
+
+
+def bool_series(series: pd.Series) -> pd.Series:
+    return series.astype(str).str.lower().isin(["true", "1", "yes"])
+
+
+def normalize_attention_disposition_events(events: pd.DataFrame) -> pd.DataFrame:
+    out = events.copy()
+    out["stock_id"] = normalize_stock_id(out["stock_id"])
+    out["signal_usable_date"] = pd.to_datetime(out["signal_usable_date"])
+    out["event_effective_start_date"] = pd.to_datetime(out["event_effective_start_date"], errors="coerce")
+    out["event_effective_end_date"] = pd.to_datetime(out["event_effective_end_date"], errors="coerce")
+    out["known_before_signal_close_bool"] = bool_series(out["known_before_signal_close"])
+    out["post_close_pre_next_open_bool"] = bool_series(out["post_close_pre_next_open"])
+    out = out[
+        out["event_type"].isin(["attention", "disposition"])
+        & out["known_before_signal_close_bool"]
+        & ~out["post_close_pre_next_open_bool"]
+    ].copy()
+    return out
+
+
+def add_attention_disposition_features(
+    stock_frame: pd.DataFrame,
+    events: pd.DataFrame | None,
+    market: pd.DataFrame,
+) -> tuple[pd.DataFrame, list[str]]:
+    out = stock_frame.copy()
+    for feature in ATTENTION_DISPOSITION_FEATURES:
+        out[feature] = 0.0
+    if events is None or events.empty:
+        out["days_since_last_attention_disposition"] = float(LOOKBACK_DAYS + 1)
+        return out, ATTENTION_DISPOSITION_FEATURES.copy()
+
+    trading_dates = sorted(pd.Timestamp(day) for day in market["日期"].dropna().unique())
+    date_to_index = {day: idx for idx, day in enumerate(trading_dates)}
+    if not date_to_index:
+        fail("market trading date index is empty")
+    latest_market_date = trading_dates[-1]
+    eligible = events[events["signal_usable_date"].le(latest_market_date)].copy()
+    eligible = eligible[eligible["signal_usable_date"].isin(date_to_index)].copy()
+
+    records: dict[str, list[dict[str, int | str]]] = {}
+    for _, row in eligible.iterrows():
+        usable = pd.Timestamp(row["signal_usable_date"])
+        usable_idx = date_to_index[usable]
+        start = row["event_effective_start_date"]
+        end = row["event_effective_end_date"]
+        start_idx = date_to_index.get(pd.Timestamp(start), usable_idx) if pd.notna(start) else usable_idx
+        end_idx = date_to_index.get(pd.Timestamp(end), start_idx) if pd.notna(end) else start_idx
+        records.setdefault(row["stock_id"], []).append(
+            {
+                "event_type": row["event_type"],
+                "usable_idx": int(usable_idx),
+                "active_start_idx": int(start_idx),
+                "active_end_idx": int(end_idx),
+            }
+        )
+    for stock_records in records.values():
+        stock_records.sort(key=lambda item: int(item["usable_idx"]))
+
+    if "stock_id_for_event_features" not in out.columns:
+        out["stock_id_for_event_features"] = normalize_stock_id(out["股票代號"])
+    out["event_date_idx"] = out["日期"].map(date_to_index)
+    missing_date = out["event_date_idx"].isna()
+    if missing_date.any():
+        out.loc[missing_date, "event_date_idx"] = -1
+    out["event_date_idx"] = out["event_date_idx"].astype(int)
+
+    for idx, row in out.iterrows():
+        date_idx = int(row["event_date_idx"])
+        if date_idx < 0:
+            out.at[idx, "days_since_last_attention_disposition"] = float(LOOKBACK_DAYS + 1)
+            continue
+        stock_records = records.get(row["stock_id_for_event_features"], [])
+        if not stock_records:
+            out.at[idx, "days_since_last_attention_disposition"] = float(LOOKBACK_DAYS + 1)
+            continue
+        count_1d = sum(1 for event in stock_records if date_idx <= int(event["usable_idx"]) <= date_idx)
+        count_3d = sum(1 for event in stock_records if date_idx - 2 <= int(event["usable_idx"]) <= date_idx)
+        count_10d = sum(1 for event in stock_records if date_idx - 9 <= int(event["usable_idx"]) <= date_idx)
+        count_20d = sum(1 for event in stock_records if date_idx - 19 <= int(event["usable_idx"]) <= date_idx)
+        attention_active = any(
+            event["event_type"] == "attention"
+            and int(event["usable_idx"]) <= date_idx
+            and int(event["active_start_idx"]) <= date_idx <= int(event["active_end_idx"])
+            for event in stock_records
+        )
+        disposition_active = any(
+            event["event_type"] == "disposition"
+            and int(event["usable_idx"]) <= date_idx
+            and int(event["active_start_idx"]) <= date_idx <= int(event["active_end_idx"])
+            for event in stock_records
+        )
+        past_indices = [int(event["usable_idx"]) for event in stock_records if int(event["usable_idx"]) <= date_idx]
+        days_since = date_idx - max(past_indices) if past_indices else LOOKBACK_DAYS + 1
+        out.at[idx, "attention_disposition_known_count_1d"] = float(count_1d)
+        out.at[idx, "attention_disposition_known_count_3d"] = float(count_3d)
+        out.at[idx, "attention_disposition_known_count_10d"] = float(count_10d)
+        out.at[idx, "attention_active_on_signal_date"] = float(attention_active)
+        out.at[idx, "disposition_active_on_signal_date"] = float(disposition_active)
+        out.at[idx, "days_since_last_attention_disposition"] = float(min(days_since, LOOKBACK_DAYS + 1))
+        out.at[idx, "has_attention_disposition_history_20d"] = float(count_20d > 0)
+
+    out = out.drop(columns=["stock_id_for_event_features", "event_date_idx"], errors="ignore")
+    return out, ATTENTION_DISPOSITION_FEATURES.copy()
 
 
 def first_hit_day(values: pd.DataFrame, threshold: float, direction: str) -> pd.Series:
@@ -218,7 +361,12 @@ def add_labels(stock: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def add_features(stock: pd.DataFrame, market: pd.DataFrame, theme: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+def add_features(
+    stock: pd.DataFrame,
+    market: pd.DataFrame,
+    theme: pd.DataFrame,
+    attention_disposition_events: pd.DataFrame | None = None,
+) -> tuple[pd.DataFrame, list[str]]:
     out = stock.merge(market, on="日期", how="left", suffixes=("", "_market"))
     out = out.merge(theme, on="股票代號", how="left")
     out["股票名稱"] = out.get("股票名稱", pd.Series(index=out.index, dtype=object)).fillna("")
@@ -273,6 +421,11 @@ def add_features(stock: pd.DataFrame, market: pd.DataFrame, theme: pd.DataFrame)
         return_ranking_features.extend([volume_rank, ma_rank])
     if relative_feature_data:
         out = pd.concat([out, pd.DataFrame(relative_feature_data, index=out.index)], axis=1)
+    out, attention_disposition_features = add_attention_disposition_features(
+        out,
+        attention_disposition_events,
+        market,
+    )
 
     numeric_features = [
         "開盤價",
@@ -320,6 +473,7 @@ def add_features(stock: pd.DataFrame, market: pd.DataFrame, theme: pd.DataFrame)
     rolling_features = [c for c in out.columns if c.endswith("_sum_5") or c.endswith("_sum_10")]
     numeric_features.extend(rolling_features)
     numeric_features.extend(return_ranking_features)
+    numeric_features.extend(attention_disposition_features)
     numeric_features = [c for c in numeric_features if c in out.columns]
 
     theme_dummies = pd.get_dummies(out["主分類"], prefix="theme", dummy_na=False)
@@ -695,15 +849,21 @@ def fmt_pct(value: float) -> str:
 
 def build_training_frame(config: dict) -> tuple[pd.DataFrame, list[str]]:
     paths = validate_inputs(config)
+    candidate_paths = validate_candidate_feature_inputs(config)
     stock = normalize_stock(read_csv(paths["stock_daily_all"]))
     market = normalize_market(read_csv(paths["market_daily"]))
     theme = normalize_theme(read_csv(paths["theme_group"]))
+    attention_disposition_events = None
+    if "attention_disposition_events" in candidate_paths:
+        attention_disposition_events = normalize_attention_disposition_events(
+            read_csv(candidate_paths["attention_disposition_events"])
+        )
     stock_latest = stock["日期"].max()
     market_latest = market["日期"].max()
     if stock_latest != market_latest:
         fail(f"stock and market latest dates differ: {stock_latest.date()} vs {market_latest.date()}")
     labeled = add_labels(stock)
-    featured, feature_cols = add_features(labeled, market, theme)
+    featured, feature_cols = add_features(labeled, market, theme, attention_disposition_events)
     return add_relative_and_risk_labels(featured), feature_cols
 
 
@@ -989,7 +1149,8 @@ def main() -> None:
                 "",
                 f"- Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
                 f"- Confirmed plan: `{CONFIRMED_PLAN_ID}`",
-                "- Data sources: three approved CSV inputs only.",
+                "- Core data sources: three approved CSV inputs.",
+                "- Candidate feature input: approved attention/disposition events only.",
                 "- Model: one hidden-layer numpy MLP with four outputs.",
                 f"- Feature screen: selected {len(feature_cols)} of {len(all_feature_cols)} generated features.",
                 "- Feature screen source: `validation_layer/data_learnability_feature_signal.csv`.",
@@ -1003,6 +1164,7 @@ def main() -> None:
                 "- Old +3% touch target is retained as old_target_success for comparison only.",
                 "- Same-day advantage soft target: pure same-day return percentile.",
                 "- Uses same-day relative return-ranking features against all stocks, same industry, and market indices.",
+                "- Uses approved attention/disposition features as candidate risk/context inputs.",
                 f"- same_day_advantage loss weight: {SAME_DAY_ADVANTAGE_LOSS_WEIGHT}.",
                 "- Strategy tuning: selected on development with monthly stability and a balanced success/return objective.",
                 "- Development monthly stability requires most active months to have both success lift and return lift above zero.",
@@ -1030,6 +1192,10 @@ def main() -> None:
         "feature_screen_source": str(FEATURE_SIGNAL_PATH.relative_to(PROJECT_ROOT)),
         "feature_screen_output": str(FEATURE_SCREEN_PATH.relative_to(PROJECT_ROOT)),
         "feature_screen_uses_holdout_for_selection": False,
+        "candidate_feature_inputs_enabled": True,
+        "candidate_feature_input_keys": sorted(config.get("candidate_model_feature_inputs", {}).keys()),
+        "attention_disposition_feature_count": len(ATTENTION_DISPOSITION_FEATURES),
+        "attention_disposition_feature_names": ATTENTION_DISPOSITION_FEATURES,
         "original_feature_count": len(all_feature_cols),
         "selected_feature_count": len(feature_cols),
         "selected_feature_preview": feature_cols[:20],

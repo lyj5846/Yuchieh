@@ -1,13 +1,13 @@
 # Data Learnability Review
 
-- Generated: 2026-07-03 00:06:49
+- Generated: 2026-07-03 08:08:20
 - Data latest date: 2026-06-30
 - Scope: data/label learnability only; no model training; no stock candidates.
 - Formal output: unchanged by this review.
 
 ## 白話結論
 
-三份資料內有跨 train/development/holdout 方向穩定的成功、風險過濾與報酬排序訊號。
+三份核心資料加已批准候選特徵內，有跨 train/development/holdout 方向穩定的成功、風險過濾與報酬排序訊號。
 
 - Review status: `learnable_signal_present`
 - Recommended next step: `feature_screen_then_retrain`
@@ -22,9 +22,9 @@
 
 ## Learnable Signal Counts
 
-- Stable success features: 44
-- Stable risk-filter features: 61
-- Stable return-ranking features: 51
+- Stable success features: 47
+- Stable risk-filter features: 67
+- Stable return-ranking features: 55
 
 ## Top Feature Clues
 
@@ -39,7 +39,7 @@ These are distinguishability clues, not buy reasons; a stable negative direction
 - This is not a probability model.
 - This does not update formal candidates.
 - This does not add a new model branch.
-- It only decides whether the current three CSV inputs contain stable enough signal for the risk-adjusted target.
+- It only decides whether the current core CSV inputs and approved candidate feature inputs contain stable enough signal for the risk-adjusted target.
 
 ## Outputs
 
