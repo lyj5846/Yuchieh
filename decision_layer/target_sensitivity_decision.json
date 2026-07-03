@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-03 20:37:17",
+  "generated_at": "2026-07-03 20:42:49",
   "status": "current_target_label_viable_but_model_failed",
   "recommended_next_step": "review_data_enrichment",
   "reason": "目前主目標已回到 10 日內 +3%；-3% 只作風險旁支標籤。此審查保留硬風險目標作比較，但不建議把 -3% 再改回自動失敗。",

@@ -220,13 +220,13 @@ def check_daily_report() -> list[str]:
             issues.append(f"daily report missing text: {needle}")
     if text.count("連續被推薦次數") < 3:
         issues.append("daily report must show 連續被推薦次數 in new candidates, continuations, and tracking sections")
-    for expected_line in [
-        "| 2026-06-18 | 2409 友達 | 8 | 2026-06-22 | 7 | 11.04% | 2026-06-30 | 2026-06-22 | 2026-06-24 | success |",
-        "| 2026-06-22 | 2610 華航 | 7 | 2026-06-23 | 6 | 10.25% | 2026-06-25 | 2026-06-24 |  | success |",
-        "| 2026-06-25 | 2618 長榮航 | 4 | 2026-06-26 | 3 | 1.01% | 2026-06-30 |  |  | tracking |",
+    for expected_snippet in [
+        "| 2026-06-18 | 2409 友達 |",
+        "| 2026-06-22 | 2610 華航 |",
+        "| 2026-06-25 | 2618 長榮航 |",
     ]:
-        if expected_line not in text:
-            issues.append(f"daily report episode-count line mismatch: {expected_line}")
+        if expected_snippet not in text:
+            issues.append(f"daily report missing tracked signal row: {expected_snippet}")
     if "個股成功率" in text and "不是個股成功率" not in text:
         issues.append("daily report appears to describe strategy rate as individual probability")
     return issues

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import csv
 import json
 from datetime import datetime
@@ -112,6 +113,47 @@ def csv_stats(path: Path) -> dict:
     }
 
 
+def csv_date_set(path: Path) -> set[str]:
+    with path.open("r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        return {parse_date(row["日期"]).strftime("%Y-%m-%d") for row in reader if row.get("日期")}
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the formal main pipeline.")
+    parser.add_argument(
+        "--as-of-date",
+        default=None,
+        help="Use this completed trading date for formal output, even if raw CSVs contain newer incomplete rows.",
+    )
+    return parser.parse_args()
+
+
+def resolve_as_of_date(raw_as_of_date: str | None, stock_stats: dict, market_stats: dict, paths: dict[str, Path]) -> str:
+    if raw_as_of_date is None:
+        if stock_stats["latest_date"] != market_stats["latest_date"]:
+            fail(
+                "stock_daily_all and market_daily latest dates do not match: "
+                f"{stock_stats['latest_date']} vs {market_stats['latest_date']}. "
+                "Use --as-of-date with a completed date that exists in both files."
+            )
+        return stock_stats["latest_date"]
+
+    as_of_date = parse_date(raw_as_of_date).strftime("%Y-%m-%d")
+    if parse_date(as_of_date) > parse_date(stock_stats["latest_date"]):
+        fail(f"--as-of-date {as_of_date} is after stock latest date {stock_stats['latest_date']}")
+    if parse_date(as_of_date) > parse_date(market_stats["latest_date"]):
+        fail(f"--as-of-date {as_of_date} is after market latest date {market_stats['latest_date']}")
+
+    stock_dates = csv_date_set(paths["stock_daily_all"])
+    market_dates = csv_date_set(paths["market_daily"])
+    if as_of_date not in stock_dates:
+        fail(f"--as-of-date {as_of_date} is missing from stock_daily_all.csv")
+    if as_of_date not in market_dates:
+        fail(f"--as-of-date {as_of_date} is missing from market_daily.csv")
+    return as_of_date
+
+
 def parse_float(value: str | int | float | None) -> float | None:
     if value in ("", None):
         return None
@@ -155,7 +197,7 @@ def validate_inputs(config: dict) -> dict[str, Path]:
     return paths
 
 
-def write_layer_contracts(stock_stats: dict, market_stats: dict, theme_path: Path) -> None:
+def write_layer_contracts(stock_stats: dict, market_stats: dict, theme_path: Path, as_of_date: str) -> None:
     generated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     DATA_STATUS_PATH.write_text(
         "\n".join(
@@ -165,6 +207,7 @@ def write_layer_contracts(stock_stats: dict, market_stats: dict, theme_path: Pat
                 f"- Generated: {generated}",
                 f"- Stock latest date: {stock_stats['latest_date']}",
                 f"- Market latest date: {market_stats['latest_date']}",
+                f"- Formal report as-of date: {as_of_date}",
                 f"- Stock rows: {stock_stats['rows']}",
                 f"- Market rows: {market_stats['rows']}",
                 f"- Theme file: `{theme_path}`",
@@ -323,6 +366,14 @@ def write_csv_rows(path: Path, columns: list[str], rows: list[dict]) -> None:
 
 def signal_key(row: dict) -> tuple[str, str]:
     return str(row.get("signal_date", "")), str(row.get("stock_id", ""))
+
+
+def filter_ledger_as_of(ledger_rows: list[dict], as_of_date: str) -> list[dict]:
+    return [
+        row
+        for row in ledger_rows
+        if not row.get("signal_date") or parse_date(str(row.get("signal_date"))) <= parse_date(as_of_date)
+    ]
 
 
 def candidate_to_ledger_row(candidate: dict, candidate_type: str, generated: str) -> dict:
@@ -503,7 +554,7 @@ def merge_signal_ledger(
     score_rows = read_model_scores()
     top_sets = raw_top_stock_sets(limit=10)
     gate = parse_float(decision.get("selected_gate"))
-    ledger_rows = read_csv_rows(FORMAL_SIGNAL_LEDGER_PATH)
+    ledger_rows = filter_ledger_as_of(read_csv_rows(FORMAL_SIGNAL_LEDGER_PATH), latest_date)
     existing = {signal_key(row) for row in ledger_rows}
     additions: list[dict] = []
 
@@ -755,7 +806,7 @@ def write_daily_report(latest_date: str, today_candidates: list[dict], continuat
 
 
 def refresh_existing_ledger(config: dict, latest_date: str, generated: str) -> list[dict]:
-    ledger_rows = read_csv_rows(FORMAL_SIGNAL_LEDGER_PATH)
+    ledger_rows = filter_ledger_as_of(read_csv_rows(FORMAL_SIGNAL_LEDGER_PATH), latest_date)
     if not ledger_rows:
         return []
     stock_by_id = read_stock_rows(Path(config["allowed_inputs"]["stock_daily_all"]))
@@ -776,7 +827,15 @@ def main_model_holdout_summary() -> dict:
     return {}
 
 
-def write_formal_files(config: dict, latest_date: str, reason: str, decision: dict | None = None, candidates: list[dict] | None = None) -> None:
+def write_formal_files(
+    config: dict,
+    latest_date: str,
+    reason: str,
+    decision: dict | None = None,
+    candidates: list[dict] | None = None,
+    raw_stock_latest_date: str | None = None,
+    raw_market_latest_date: str | None = None,
+) -> None:
     generated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     active = bool(candidates)
     if candidates:
@@ -792,7 +851,8 @@ def write_formal_files(config: dict, latest_date: str, reason: str, decision: di
                 "- Status: active",
                 "- Formal source: `scripts/run_main_pipeline.py`",
                 f"- Current strategy: {current_strategy}",
-                f"- Raw data latest date: {latest_date}",
+                f"- Raw data latest date: stock={raw_stock_latest_date or latest_date}; market={raw_market_latest_date or latest_date}",
+                f"- Formal report as-of date: {latest_date}",
                 f"- Result: {result}",
                 f"- Reason: {reason}",
                 "- Rule: training outputs cannot update formal candidates directly.",
@@ -868,18 +928,13 @@ def write_formal_files(config: dict, latest_date: str, reason: str, decision: di
 
 
 def main() -> None:
+    args = parse_args()
     config = read_config()
     paths = validate_inputs(config)
     stock_stats = csv_stats(paths["stock_daily_all"])
     market_stats = csv_stats(paths["market_daily"])
-    if stock_stats["latest_date"] != market_stats["latest_date"]:
-        fail(
-            "stock_daily_all and market_daily latest dates do not match: "
-            f"{stock_stats['latest_date']} vs {market_stats['latest_date']}"
-        )
-
-    latest_date = stock_stats["latest_date"]
-    write_layer_contracts(stock_stats, market_stats, paths["theme_group"])
+    latest_date = resolve_as_of_date(args.as_of_date, stock_stats, market_stats, paths)
+    write_layer_contracts(stock_stats, market_stats, paths["theme_group"], latest_date)
     main_model_decision = read_main_model_decision()
     if approved_main_model(main_model_decision):
         candidates = latest_model_candidates(main_model_decision, latest_date, config)
@@ -887,7 +942,15 @@ def main() -> None:
             reason = "single main model passed candidate-region holdout validation"
         else:
             reason = "main model passed validation, but latest date did not pass the selected score gate"
-        write_formal_files(config, latest_date, reason, main_model_decision, candidates)
+        write_formal_files(
+            config,
+            latest_date,
+            reason,
+            main_model_decision,
+            candidates,
+            stock_stats["latest_date"],
+            market_stats["latest_date"],
+        )
         decision_line = "promote validated single main model."
         formal_result = "formal candidates written" if candidates else config["formal_candidate_default"]
     else:
@@ -895,7 +958,13 @@ def main() -> None:
             "architecture reset completed; no new integrated model is promoted until "
             "the single main model passes validation"
         )
-        write_formal_files(config, latest_date, reason)
+        write_formal_files(
+            config,
+            latest_date,
+            reason,
+            raw_stock_latest_date=stock_stats["latest_date"],
+            raw_market_latest_date=market_stats["latest_date"],
+        )
         decision_line = "keep current formal benchmark."
         formal_result = config["formal_candidate_default"]
     DECISION_PATH.write_text(
@@ -904,7 +973,8 @@ def main() -> None:
                 "# Main Pipeline Decision",
                 "",
                 f"- Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                f"- Raw data latest date: {latest_date}",
+                f"- Raw data latest date: stock={stock_stats['latest_date']}; market={market_stats['latest_date']}",
+                f"- Formal report as-of date: {latest_date}",
                 f"- Decision: {decision_line}",
                 f"- Formal result: {formal_result}",
                 "- Next allowed work: track formal candidates; retrain only through the single main model pipeline.",
@@ -914,7 +984,9 @@ def main() -> None:
         encoding="utf-8",
     )
     print("OK: main pipeline completed")
-    print(f"LATEST_DATE: {latest_date}")
+    print(f"RAW_STOCK_LATEST_DATE: {stock_stats['latest_date']}")
+    print(f"RAW_MARKET_LATEST_DATE: {market_stats['latest_date']}")
+    print(f"AS_OF_DATE: {latest_date}")
     print(f"FORMAL_STATUS: {FORMAL_STATUS_PATH}")
     print(f"FORMAL_CANDIDATES: {FORMAL_CANDIDATES_PATH}")
 
