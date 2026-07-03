@@ -32,6 +32,7 @@ TRACKING_COLUMNS = [
     "stock_name",
     "research_score",
     "daily_rank",
+    "consecutive_recommendation_count",
     "buy_date",
     "buy_open",
     "target_close_plus3",
@@ -52,6 +53,7 @@ LEDGER_COLUMNS = [
     "stock_name",
     "original_rank",
     "research_score",
+    "consecutive_recommendation_count",
     "candidate_type",
     "created_at",
     "last_updated_at",
@@ -328,6 +330,7 @@ def candidate_to_ledger_row(candidate: dict, candidate_type: str, generated: str
         "stock_name": candidate.get("股票名稱", ""),
         "original_rank": fmt_float(candidate.get("daily_rank"), digits=0),
         "research_score": fmt_float(candidate.get("integrated_research_score")),
+        "consecutive_recommendation_count": str(candidate.get("consecutive_recommendation_count", "")),
         "candidate_type": candidate_type,
         "created_at": generated,
         "last_updated_at": generated,
@@ -463,6 +466,7 @@ def tracking_view_from_ledger(ledger_rows: list[dict]) -> list[dict]:
             "stock_name": row.get("stock_name", ""),
             "research_score": row.get("research_score", ""),
             "daily_rank": row.get("original_rank", ""),
+            "consecutive_recommendation_count": row.get("consecutive_recommendation_count", ""),
             "buy_date": row.get("buy_date", ""),
             "buy_open": row.get("buy_open", ""),
             "target_close_plus3": row.get("target_close_plus3", ""),
@@ -489,6 +493,7 @@ def merge_signal_ledger(
 ) -> tuple[list[dict], list[dict]]:
     stock_by_id = read_stock_rows(Path(config["allowed_inputs"]["stock_daily_all"]))
     score_rows = read_model_scores()
+    top_sets = raw_top_stock_sets(limit=10)
     gate = parse_float(decision.get("selected_gate"))
     ledger_rows = read_csv_rows(FORMAL_SIGNAL_LEDGER_PATH)
     existing = {signal_key(row) for row in ledger_rows}
@@ -509,6 +514,7 @@ def merge_signal_ledger(
                 existing.add(signal_key(row))
 
     ledger_rows.extend(additions)
+    fill_missing_ledger_consecutive_counts(ledger_rows, top_sets)
     updated = [track_signal_record(row, stock_by_id, latest_date, generated) for row in ledger_rows]
     updated.sort(key=lambda row: (row.get("signal_date", ""), int(float(row.get("original_rank") or 999999)), row.get("stock_id", "")))
     write_csv_rows(FORMAL_SIGNAL_LEDGER_PATH, LEDGER_COLUMNS, updated)
@@ -566,6 +572,43 @@ def latest_raw_top_rows(latest_date: str, limit: int = 10) -> list[dict]:
     return rows[:limit]
 
 
+def raw_top_stock_sets(limit: int = 10) -> dict[str, set[str]]:
+    by_date: dict[str, list[dict]] = {}
+    for row in read_model_scores():
+        by_date.setdefault(str(row.get("日期", "")), []).append(row)
+    top_sets: dict[str, set[str]] = {}
+    for date, rows in by_date.items():
+        rows.sort(key=lambda row: row["_score"], reverse=True)
+        top_sets[date] = {str(row.get("股票代號", "")) for row in rows[:limit]}
+    return top_sets
+
+
+def consecutive_recommendation_count(stock_id: str, signal_date: str, top_sets: dict[str, set[str]]) -> int:
+    dates = [date for date in top_sets if date <= signal_date]
+    dates.sort(key=parse_date, reverse=True)
+    count = 0
+    for date in dates:
+        if stock_id not in top_sets.get(date, set()):
+            break
+        count += 1
+    return count
+
+
+def attach_consecutive_counts(rows: list[dict], signal_date: str, top_sets: dict[str, set[str]]) -> None:
+    for row in rows:
+        stock_id = str(row.get("股票代號", ""))
+        row["consecutive_recommendation_count"] = consecutive_recommendation_count(stock_id, signal_date, top_sets)
+
+
+def fill_missing_ledger_consecutive_counts(ledger_rows: list[dict], top_sets: dict[str, set[str]]) -> None:
+    for row in ledger_rows:
+        if str(row.get("consecutive_recommendation_count", "")).strip():
+            continue
+        stock_id = str(row.get("stock_id", ""))
+        signal_date = str(row.get("signal_date", ""))
+        row["consecutive_recommendation_count"] = str(consecutive_recommendation_count(stock_id, signal_date, top_sets))
+
+
 def find_recent_ledger_row(raw_row: dict, ledger_rows: list[dict], stock_by_id: dict[str, list[dict]], latest_date: str) -> dict | None:
     stock_id = str(raw_row.get("股票代號", ""))
     stock_rows = stock_by_id.get(stock_id, [])
@@ -592,6 +635,7 @@ def find_recent_ledger_row(raw_row: dict, ledger_rows: list[dict], stock_by_id: 
 def continuation_rows(config: dict, latest_date: str, ledger_rows: list[dict], today_candidates: list[dict]) -> list[dict]:
     stock_by_id = read_stock_rows(Path(config["allowed_inputs"]["stock_daily_all"]))
     today_keys = {str(row.get("股票代號", "")) for row in today_candidates}
+    top_sets = raw_top_stock_sets(limit=10)
     rows: list[dict] = []
     for raw in latest_raw_top_rows(latest_date, limit=10):
         stock_id = str(raw.get("股票代號", ""))
@@ -606,6 +650,7 @@ def continuation_rows(config: dict, latest_date: str, ledger_rows: list[dict], t
                 "stock_name": raw.get("股票名稱", ""),
                 "raw_rank": fmt_float(raw.get("daily_rank"), digits=0),
                 "research_score": fmt_float(raw.get("integrated_research_score")),
+                "consecutive_recommendation_count": str(consecutive_recommendation_count(stock_id, latest_date, top_sets)),
                 "previous_signal_date": prior.get("signal_date", ""),
                 "previous_tracking_status": prior.get("tracking_status", ""),
                 "max_close_return_so_far": prior.get("max_close_return_so_far", ""),
@@ -637,6 +682,7 @@ def write_daily_report(latest_date: str, today_candidates: list[dict], continuat
             "股票": f"{row.get('股票代號', '')} {row.get('股票名稱', '')}",
             "原始排名": fmt_float(row.get("daily_rank"), digits=0),
             "research_score": fmt_float(row.get("integrated_research_score")),
+            "連續被推薦次數": row.get("consecutive_recommendation_count", ""),
             "類型": "新進正式候選",
         }
         for row in today_candidates
@@ -646,6 +692,7 @@ def write_daily_report(latest_date: str, today_candidates: list[dict], continuat
             "股票": f"{row.get('stock_id', '')} {row.get('stock_name', '')}",
             "原始排名": row.get("raw_rank", ""),
             "research_score": row.get("research_score", ""),
+            "連續被推薦次數": row.get("consecutive_recommendation_count", ""),
             "前次訊號日": row.get("previous_signal_date", ""),
             "追蹤狀態": row.get("previous_tracking_status", ""),
             "目前最高收盤報酬": pct_text(row.get("max_close_return_so_far", "")),
@@ -675,11 +722,11 @@ def write_daily_report(latest_date: str, today_candidates: list[dict], continuat
         "",
         "## 今日新進正式候選",
         "",
-        *md_table(["股票", "原始排名", "research_score", "類型"], new_rows),
+        *md_table(["股票", "原始排名", "research_score", "連續被推薦次數", "類型"], new_rows),
         "",
         "## 高分續強但已追蹤",
         "",
-        *md_table(["股票", "原始排名", "research_score", "前次訊號日", "追蹤狀態", "目前最高收盤報酬"], continuation_display),
+        *md_table(["股票", "原始排名", "research_score", "連續被推薦次數", "前次訊號日", "追蹤狀態", "目前最高收盤報酬"], continuation_display),
         "",
         "## 正式候選追蹤",
         "",
@@ -694,6 +741,7 @@ def refresh_existing_ledger(config: dict, latest_date: str, generated: str) -> l
     if not ledger_rows:
         return []
     stock_by_id = read_stock_rows(Path(config["allowed_inputs"]["stock_daily_all"]))
+    fill_missing_ledger_consecutive_counts(ledger_rows, raw_top_stock_sets(limit=10))
     updated = [track_signal_record(row, stock_by_id, latest_date, generated) for row in ledger_rows]
     updated.sort(key=lambda row: (row.get("signal_date", ""), int(float(row.get("original_rank") or 999999)), row.get("stock_id", "")))
     write_csv_rows(FORMAL_SIGNAL_LEDGER_PATH, LEDGER_COLUMNS, updated)
@@ -713,6 +761,8 @@ def main_model_holdout_summary() -> dict:
 def write_formal_files(config: dict, latest_date: str, reason: str, decision: dict | None = None, candidates: list[dict] | None = None) -> None:
     generated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     active = bool(candidates)
+    if candidates:
+        attach_consecutive_counts(candidates, latest_date, raw_top_stock_sets(limit=10))
     current_strategy = "single integrated main model Top3" if active else "retained benchmark"
     result = "正式候選已產生" if active else config["formal_candidate_default"]
     FORMAL_STATUS_PATH.write_text(
@@ -743,6 +793,7 @@ def write_formal_files(config: dict, latest_date: str, reason: str, decision: di
                 "stock_name",
                 "output_type",
                 "research_score",
+                "consecutive_recommendation_count",
                 "calibrated_success_rate",
                 "calibration_sample_count",
                 "strategy_backtest_hit_rate",
@@ -773,6 +824,7 @@ def write_formal_files(config: dict, latest_date: str, reason: str, decision: di
                         row.get("股票名稱", ""),
                         "formal_candidate",
                         fmt_float(row.get("integrated_research_score")),
+                        row.get("consecutive_recommendation_count", ""),
                         "",
                         "",
                         fmt_float(decision.get("holdout_success_rate")),

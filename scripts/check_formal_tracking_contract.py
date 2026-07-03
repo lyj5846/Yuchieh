@@ -19,6 +19,7 @@ REQUIRED_LEDGER_COLUMNS = {
     "stock_name",
     "original_rank",
     "research_score",
+    "consecutive_recommendation_count",
     "candidate_type",
     "created_at",
     "last_updated_at",
@@ -79,8 +80,14 @@ def check_formal_candidates() -> list[str]:
     columns = set(rows[0])
     if "strategy_backtest_hit_rate" not in columns:
         issues.append("formal_candidates.csv must include strategy_backtest_hit_rate")
+    if "consecutive_recommendation_count" not in columns:
+        issues.append("formal_candidates.csv must include consecutive_recommendation_count")
     if "actual_hit_rate" in columns:
         issues.append("formal_candidates.csv must not use actual_hit_rate")
+    header = list(rows[0])
+    if "research_score" in header and "consecutive_recommendation_count" in header:
+        if header.index("consecutive_recommendation_count") != header.index("research_score") + 1:
+            issues.append("consecutive_recommendation_count must appear immediately after research_score")
 
     rows_0630 = [row for row in rows if row.get("date") == "2026-06-30"]
     stocks_0630 = {row.get("stock_id") for row in rows_0630}
@@ -90,6 +97,9 @@ def check_formal_candidates() -> list[str]:
     for row in rows_0630:
         if row.get("tracking_status") != "tracking":
             issues.append(f"2026-06-30 formal candidate {row.get('stock_id')} should be tracking in formal_candidates.csv")
+        count = row.get("consecutive_recommendation_count", "")
+        if not count.isdigit() or int(count) < 1:
+            issues.append(f"2026-06-30 formal candidate {row.get('stock_id')} must have positive consecutive_recommendation_count")
     return issues
 
 
@@ -115,6 +125,9 @@ def check_ledger() -> list[str]:
         status = row.get("tracking_status", "")
         if status not in ALLOWED_TRACKING_STATUS:
             issues.append(f"invalid tracking_status for {key[0]} {key[1]}: {status}")
+        count = row.get("consecutive_recommendation_count", "")
+        if count and (not count.isdigit() or int(count) < 1):
+            issues.append(f"invalid consecutive_recommendation_count for {key[0]} {key[1]}: {count}")
 
     rows_0630 = [row for row in rows if row.get("signal_date") == "2026-06-30"]
     stocks_0630 = {row.get("stock_id") for row in rows_0630}
@@ -126,6 +139,9 @@ def check_ledger() -> list[str]:
             issues.append(f"2026-06-30 ledger candidate {row.get('stock_id')} must be new_formal")
         if row.get("tracking_status") != "not_started":
             issues.append(f"2026-06-30 ledger candidate {row.get('stock_id')} must be not_started")
+        count = row.get("consecutive_recommendation_count", "")
+        if not count.isdigit() or int(count) < 1:
+            issues.append(f"2026-06-30 ledger candidate {row.get('stock_id')} must have positive consecutive_recommendation_count")
 
     for stock in ["2409", "2610", "2618"]:
         if stock not in {row.get("stock_id") for row in rows}:
@@ -142,6 +158,7 @@ def check_daily_report() -> list[str]:
         "正式候選追蹤",
         "research_score 是排序分數，不是機率",
         "strategy_backtest_hit_rate 是策略歷史回測成功率，不是個股成功率",
+        "連續被推薦次數",
         "6515 穎崴",
         "2404 漢唐",
         "6669 緯穎",

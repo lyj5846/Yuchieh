@@ -1,6 +1,6 @@
 # Formal Status
 
-- Generated: 2026-07-03 15:59:24
+- Generated: 2026-07-03 16:11:20
 - Status: active
 - Formal source: `scripts/run_main_pipeline.py`
 - Current strategy: single integrated main model Top3
