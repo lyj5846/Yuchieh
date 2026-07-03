@@ -875,10 +875,7 @@ def main() -> None:
     formal_approved = bool(decision.get("formal_approved", False))
     if formal_approved:
         recommended_repair_id = "ready_for_formal_review"
-        recommendation_summary = "風險調整目標主模型已通過訓練驗證；下一步只能由正式入口決定是否更新候選。"
-    elif target_contract == "risk_adjusted_10d_success":
-        recommended_repair_id = "review_target_or_data_sufficiency"
-        recommendation_summary = "風險調整目標重訓後仍未通過正式驗證；不要再補權重或新增分支，下一步應檢討目前三份資料是否足以支撐此交易目標。"
+        recommendation_summary = "回撤旁支標籤主模型已通過訓練驗證；下一步只能由正式入口決定是否更新候選。"
     elif advantage_target_delta <= 0 or raw_advantage_return_lift <= 0:
         recommended_repair_id = "redefine_return_target"
         recommendation_summary = (

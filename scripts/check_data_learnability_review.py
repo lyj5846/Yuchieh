@@ -60,6 +60,14 @@ def main() -> None:
         fail("decision must include stable_risk_filter_feature_count")
     if not isinstance(decision.get("stable_return_feature_count"), int):
         fail("decision must include stable_return_feature_count")
+    for key in [
+        "holdout_primary_success_rate",
+        "holdout_hard_risk_adjusted_success_rate",
+        "holdout_drawdown_side_risk_rate",
+        "holdout_drawdown_side_risk_among_success",
+    ]:
+        if key not in decision:
+            fail(f"decision missing drawdown side-label field: {key}")
 
     feature_rows = read_csv_rows(FEATURE_SIGNAL_PATH)
     if not feature_rows:
@@ -85,9 +93,12 @@ def main() -> None:
         "split",
         "group",
         "rows",
-        "risk_adjusted_success_rate",
-        "old_success_but_risk_failed_rate",
-        "risk_failed_among_old_success",
+        "primary_success_rate",
+        "hard_risk_adjusted_success_rate",
+        "clean_success_rate",
+        "painful_success_rate",
+        "drawdown_side_risk_rate",
+        "drawdown_side_risk_among_success",
     }
     missing_profile_cols = required_profile_cols - set(profile_rows[0])
     if missing_profile_cols:

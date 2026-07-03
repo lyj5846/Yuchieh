@@ -1,7 +1,7 @@
 # Main Model Training Spec
 
-- Generated: 2026-07-03 08:40:35
-- Confirmed plan: `risk_adjusted_main_model_training_plan`
+- Generated: 2026-07-03 09:25:14
+- Confirmed plan: `drawdown_side_label_main_model_training_plan`
 - Core data sources: three approved CSV inputs.
 - Candidate feature input: approved attention/disposition events only.
 - Model: one hidden-layer numpy MLP with four outputs.
@@ -10,11 +10,11 @@
 - Feature screen uses train/development correlation stability only; holdout columns are audit-only.
 - Feature screen min absolute train/development correlation: 0.01.
 - Feature screen max features: 48.
-- Training heads: selection_success, same_day_advantage soft target, failure_risk, episode_start.
-- Formal target_success is risk-adjusted_10d_success.
-- Risk-adjusted success: next-day open buy; +3% close must occur before any -3% low within 10 trading days.
-- Conservative tie rule: if +3% close and -3% low occur on the same day, target_success is failure.
-- Old +3% touch target is retained as old_target_success for comparison only.
+- Training heads: selection_success, same_day_advantage soft target, drawdown/failure_risk, episode_start.
+- Formal target_success is the 10-day +3% close touch rule.
+- Drawdown side labels: -3% low is modeled as risk context, not automatic target failure.
+- If +3% close happens after a -3% low, target_success remains success and painful_success_label records the path risk.
+- risk_adjusted_10d_success is retained only as a hard-risk comparison field.
 - Same-day advantage soft target: pure same-day return percentile.
 - Uses same-day relative return-ranking features against all stocks, same industry, and market indices.
 - Uses approved attention/disposition features as candidate risk/context inputs.
@@ -23,8 +23,8 @@
 - Development monthly stability requires most active months to have both success lift and return lift above zero.
 - Feature lookback: 20 trading days.
 - Episode gap: 10 trading days.
-- Selected weights: 1.2, 1.0, 0.2, 0.0
-- Selected gate: 1.24796724319458
+- Selected weights: 1.8, 0.6, 0.2, 0.2
+- Selected gate: 1.4803780794143677
 - Selected development positive months: 3/3
-- Selected balanced objective score: 0.202998
+- Selected balanced objective score: 0.169173
 - Raw outputs are research ranking scores, not calibrated success rates.

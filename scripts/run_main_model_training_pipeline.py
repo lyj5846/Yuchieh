@@ -45,7 +45,7 @@ CALIBRATION_PATH = VALIDATION_DIR / "main_model_calibration.csv"
 DECISION_MD_PATH = DECISION_DIR / "main_model_decision.md"
 DECISION_JSON_PATH = DECISION_DIR / "main_model_decision.json"
 
-CONFIRMED_PLAN_ID = "risk_adjusted_main_model_training_plan"
+CONFIRMED_PLAN_ID = "drawdown_side_label_main_model_training_plan"
 LOOKBACK_DAYS = 20
 EPISODE_GAP_DAYS = 10
 LOOKAHEAD_DAYS = 10
@@ -350,13 +350,33 @@ def add_labels(stock: pd.DataFrame) -> pd.DataFrame:
         & out["profit_event_day"].eq(out["adverse_event_day"])
     ).astype(int)
     out["risk_adjusted_10d_success"] = (out["label_complete"] & profit_first).astype(int)
-    out["target_success"] = out["risk_adjusted_10d_success"].astype(int)
+    out["target_success"] = out["old_target_success"].astype(int)
+    out["drawdown_minus3_before_or_same_success"] = (
+        out["label_complete"]
+        & has_profit
+        & has_adverse
+        & out["adverse_event_day"].le(out["profit_event_day"])
+    ).astype(int)
+    out["drawdown_minus3_before_success"] = (
+        out["label_complete"]
+        & has_profit
+        & has_adverse
+        & out["adverse_event_day"].lt(out["profit_event_day"])
+    ).astype(int)
+    out["same_day_profit_and_drawdown_minus3"] = out["same_day_both_event"].astype(int)
+    out["hit_minus3_low_anytime_10d"] = (out["label_complete"] & has_adverse).astype(int)
+    out["clean_success_label"] = (
+        (out["target_success"] == 1)
+        & (out["drawdown_minus3_before_or_same_success"] == 0)
+    ).astype(int)
+    out["painful_success_label"] = (
+        (out["target_success"] == 1)
+        & (out["drawdown_minus3_before_or_same_success"] == 1)
+    ).astype(int)
     out["old_success_but_risk_failed"] = (
-        (out["old_target_success"] == 1) & (out["target_success"] == 0)
+        (out["old_target_success"] == 1) & (out["risk_adjusted_10d_success"] == 0)
     ).astype(int)
     out["realized_10d_trade_return"] = out["future_10d_day10_close_return"]
-    out.loc[profit_first, "realized_10d_trade_return"] = PROFIT_THRESHOLD
-    out.loc[adverse_first, "realized_10d_trade_return"] = ADVERSE_THRESHOLD
     out.loc[~out["label_complete"], "realized_10d_trade_return"] = np.nan
     return out
 
@@ -1119,6 +1139,12 @@ def main() -> None:
         "risk_adjusted_10d_success",
         "old_target_success",
         "old_success_but_risk_failed",
+        "drawdown_minus3_before_or_same_success",
+        "drawdown_minus3_before_success",
+        "same_day_profit_and_drawdown_minus3",
+        "hit_minus3_low_anytime_10d",
+        "clean_success_label",
+        "painful_success_label",
         "selection_success_label",
         "same_day_advantage_label",
         "same_day_advantage_target",
@@ -1157,11 +1183,11 @@ def main() -> None:
                 "- Feature screen uses train/development correlation stability only; holdout columns are audit-only.",
                 f"- Feature screen min absolute train/development correlation: {FEATURE_SCREEN_MIN_ABS_CORR}.",
                 f"- Feature screen max features: {FEATURE_SCREEN_MAX_FEATURES}.",
-                "- Training heads: selection_success, same_day_advantage soft target, failure_risk, episode_start.",
-                "- Formal target_success is risk-adjusted_10d_success.",
-                "- Risk-adjusted success: next-day open buy; +3% close must occur before any -3% low within 10 trading days.",
-                "- Conservative tie rule: if +3% close and -3% low occur on the same day, target_success is failure.",
-                "- Old +3% touch target is retained as old_target_success for comparison only.",
+                "- Training heads: selection_success, same_day_advantage soft target, drawdown/failure_risk, episode_start.",
+                "- Formal target_success is the 10-day +3% close touch rule.",
+                "- Drawdown side labels: -3% low is modeled as risk context, not automatic target failure.",
+                "- If +3% close happens after a -3% low, target_success remains success and painful_success_label records the path risk.",
+                "- risk_adjusted_10d_success is retained only as a hard-risk comparison field.",
                 "- Same-day advantage soft target: pure same-day return percentile.",
                 "- Uses same-day relative return-ranking features against all stocks, same industry, and market indices.",
                 "- Uses approved attention/disposition features as candidate risk/context inputs.",
@@ -1184,7 +1210,7 @@ def main() -> None:
     decision = {
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "confirmed_plan": CONFIRMED_PLAN_ID,
-        "target_contract": "risk_adjusted_10d_success",
+        "target_contract": "drawdown_side_label_10d_touch_success",
         "status": status,
         "formal_approved": passed,
         "reason": reason,
@@ -1207,7 +1233,8 @@ def main() -> None:
         "holdout_success_lift": float(holdout_row["success_lift"]) if not pd.isna(holdout_row["success_lift"]) else None,
         "holdout_return_lift": float(holdout_row["return_lift"]) if not pd.isna(holdout_row["return_lift"]) else None,
         "holdout_old_target_success_rate": float(holdout["old_target_success"].mean()) if not holdout.empty else None,
-        "holdout_risk_adjusted_success_rate": float(holdout["target_success"].mean()) if not holdout.empty else None,
+        "holdout_primary_touch_success_rate": float(holdout["target_success"].mean()) if not holdout.empty else None,
+        "holdout_risk_adjusted_success_rate": float(holdout["risk_adjusted_10d_success"].mean()) if not holdout.empty else None,
         "holdout_old_success_but_risk_failed_rate": float(holdout["old_success_but_risk_failed"].mean()) if not holdout.empty else None,
         "holdout_old_success_but_risk_failed_count": int(holdout["old_success_but_risk_failed"].sum()) if not holdout.empty else 0,
         "holdout_old_success_but_risk_failed_among_old_success": (
@@ -1215,6 +1242,14 @@ def main() -> None:
             if not holdout.empty and int(holdout["old_target_success"].sum()) > 0
             else None
         ),
+        "holdout_clean_success_rate": float(holdout["clean_success_label"].mean()) if not holdout.empty else None,
+        "holdout_painful_success_rate": float(holdout["painful_success_label"].mean()) if not holdout.empty else None,
+        "holdout_painful_success_among_success": (
+            float(holdout["painful_success_label"].sum() / holdout["target_success"].sum())
+            if not holdout.empty and int(holdout["target_success"].sum()) > 0
+            else None
+        ),
+        "holdout_minus3_anytime_rate": float(holdout["hit_minus3_low_anytime_10d"].mean()) if not holdout.empty else None,
         "holdout_return_ranking_probe_success_lift": float(holdout_probe_row["success_lift"]) if not pd.isna(holdout_probe_row["success_lift"]) else None,
         "holdout_return_ranking_probe_return_lift": float(holdout_probe_row["return_lift"]) if not pd.isna(holdout_probe_row["return_lift"]) else None,
         "score_order_ok": score_order_ok,
@@ -1245,11 +1280,14 @@ def main() -> None:
                 f"- Training loss: {losses[0]:.6f} -> {losses[-1]:.6f}",
                 f"- Feature screen: selected {len(feature_cols)} of {len(all_feature_cols)} features",
                 "- Feature screen holdout usage: audit-only, not selection",
-                "- Target contract: risk_adjusted_10d_success",
-                f"- Holdout old +3% touch success rate: {fmt_pct(decision['holdout_old_target_success_rate'])}",
+                "- Target contract: drawdown_side_label_10d_touch_success",
+                f"- Holdout primary +3% touch success rate: {fmt_pct(decision['holdout_primary_touch_success_rate'])}",
                 f"- Holdout risk-adjusted success rate: {fmt_pct(decision['holdout_risk_adjusted_success_rate'])}",
-                f"- Holdout old successes filtered by risk rule among all rows: {fmt_pct(decision['holdout_old_success_but_risk_failed_rate'])}",
-                f"- Holdout old successes filtered by risk rule among old successes: {fmt_pct(decision['holdout_old_success_but_risk_failed_among_old_success'])}",
+                f"- Holdout success with -3% drawdown side risk among all rows: {fmt_pct(decision['holdout_old_success_but_risk_failed_rate'])}",
+                f"- Holdout success with -3% drawdown side risk among successes: {fmt_pct(decision['holdout_old_success_but_risk_failed_among_old_success'])}",
+                f"- Holdout clean success rate: {fmt_pct(decision['holdout_clean_success_rate'])}",
+                f"- Holdout painful success rate: {fmt_pct(decision['holdout_painful_success_rate'])}",
+                f"- Holdout painful success among successes: {fmt_pct(decision['holdout_painful_success_among_success'])}",
                 f"- Holdout success rate: {fmt_pct(decision['holdout_success_rate'])}",
                 f"- Holdout success lift: {fmt_pct(decision['holdout_success_lift'])}",
                 f"- Holdout return lift: {fmt_pct(decision['holdout_return_lift'])}",

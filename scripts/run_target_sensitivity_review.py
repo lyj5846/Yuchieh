@@ -33,20 +33,20 @@ LOOKAHEAD_DAYS = 10
 TARGET_CANDIDATES = [
     {
         "target_id": "old_touch_3pct_10d",
-        "description": "舊目標：10 日內任一天收盤 +3%，不管中途風險。",
+        "description": "目前主目標：10 日內任一天收盤 +3%，中途 -3% 只作風險旁支標籤。",
         "profit_threshold": 0.03,
         "adverse_threshold": None,
         "lookahead_days": 10,
-        "is_current": False,
+        "is_current": True,
         "is_old_baseline": True,
     },
     {
         "target_id": "risk_adjusted_3pct_before_minus3pct_10d",
-        "description": "目前目標：10 日內先收盤 +3%，且不能先最低價 -3%。",
+        "description": "硬風險比較：10 日內先收盤 +3%，且不能先最低價 -3%。",
         "profit_threshold": 0.03,
         "adverse_threshold": -0.03,
         "lookahead_days": 10,
-        "is_current": True,
+        "is_current": False,
         "is_old_baseline": False,
     },
     {
@@ -296,7 +296,11 @@ def decide(summary: pd.DataFrame, monthly: pd.DataFrame) -> dict:
     current = scored[scored["is_current"]].iloc[0].to_dict()
     non_old = scored[~scored["is_old_baseline"]].copy()
     best = non_old.iloc[0].to_dict()
-    if str(best["target_id"]) != str(current["target_id"]) and float(best["decision_score"]) >= float(current["decision_score"]) + 1.0:
+    if str(current["target_id"]) == "old_touch_3pct_10d":
+        status = "current_target_label_viable_but_model_failed"
+        recommended = "review_data_enrichment"
+        reason = "目前主目標已回到 10 日內 +3%；-3% 只作風險旁支標籤。此審查保留硬風險目標作比較，但不建議把 -3% 再改回自動失敗。"
+    elif str(best["target_id"]) != str(current["target_id"]) and float(best["decision_score"]) >= float(current["decision_score"]) + 1.0:
         status = "current_target_not_best"
         recommended = "review_target_contract_change"
         reason = "目前風險調整目標不是敏感度審查中最穩的目標；下一步應討論是否改 label，而不是再重訓目前目標。"

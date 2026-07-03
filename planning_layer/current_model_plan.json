@@ -1,19 +1,21 @@
 {
   "plan_id": "model_plan_20260630",
-  "generated_at": "2026-07-03 00:10:11",
+  "generated_at": "2026-07-03 09:21:00",
   "data_latest_date": "2026-06-30",
   "planning_status": "waiting_for_user_confirmation",
-  "problem_statement": "The data learnability review found stable signal in the three CSV inputs, but the full-feature risk-adjusted model failed holdout. The next step is feature-screened retraining of the single deep-learning main model.",
-  "recommended_experiment_id": "risk_adjusted_main_model_training_plan",
+  "problem_statement": "The hard -3% risk-adjusted target failed because it rejected many valid +3% rebound successes. The next step is feature-screened retraining of the single deep-learning main model with +3% touch as primary success and -3% drawdown as a risk side label.",
+  "recommended_experiment_id": "drawdown_side_label_main_model_training_plan",
   "confirmation_required": true,
   "experiment_candidates": [
     {
-      "id": "risk_adjusted_main_model_training_plan",
-      "hypothesis": "The single integrated deep-learning route should first screen for train/development-stable features, then retrain on risk_adjusted_10d_success so weak or unstable features do not dilute the useful signal.",
-      "why_now": "The data learnability review found stable success, risk-filter, and return-ranking clues, while the full-feature retrain still failed holdout. The next step is feature-screened retraining, not a new model branch.",
+      "id": "drawdown_side_label_main_model_training_plan",
+      "hypothesis": "The single integrated deep-learning route should retrain with the +3% touch rule as the primary target while learning -3% drawdown as a risk side label, so valid rebound successes are not incorrectly treated as failures.",
+      "why_now": "The drawdown side-label review showed that many valid +3% successes first touched -3%; the previous hard-risk target was too strict for the user's trading question. The next step is retraining the same main model with corrected labels, not a new model branch.",
       "target_label": [
-        "risk_adjusted_10d_success",
-        "old_target_success_comparison",
+        "target_success_10d_plus3_touch",
+        "drawdown_minus3_side_label",
+        "clean_success_label",
+        "painful_success_label",
         "failure_risk",
         "same_day_relative_advantage",
         "episode_start"
@@ -29,12 +31,12 @@
         "Do not use holdout correlations to select features; holdout is validation-only.",
         "Use only data known on or before the signal day.",
         "Keep theme data as a categorical feature or validation group only.",
-        "Use future prices only in the label layer to identify +3% close before -3% low."
+        "Use future prices only in the label layer to identify +3% touch success and drawdown side labels."
       ],
       "model_changes": [
         "Retrain the existing one hidden-layer numpy MLP route in the main model layer.",
         "Keep raw outputs as research ranking scores until calibration passes.",
-        "Keep old_target_success only as a comparison field.",
+        "Keep risk_adjusted_10d_success only as a hard-risk comparison field.",
         "Produce at most Top 3 candidates only after validation accepts the route."
       ],
       "validation_checks": [
@@ -65,7 +67,7 @@
         "main_model_decision.md"
       ],
       "risk_notes": [
-        "The stricter target will lower raw success rate; compare against the new same-day baseline, not the old touch target.",
+        "The primary success rate will return to the +3% touch target; risk quality must be judged through side labels, not by turning drawdown into automatic failure.",
         "Do not expose raw scores as success rates."
       ]
     },

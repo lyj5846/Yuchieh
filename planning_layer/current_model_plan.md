@@ -1,29 +1,29 @@
 # Current Model Plan
 
-- Generated: 2026-07-03 00:10:11
+- Generated: 2026-07-03 09:21:00
 - Data latest date: 2026-06-30
 - Status: waiting_for_user_confirmation
 - Confirmation required: true
 
 ## Problem
 
-The data learnability review found stable signal in the three CSV inputs, but the full-feature risk-adjusted model failed holdout. The next step is feature-screened retraining of the single deep-learning main model.
+The hard -3% risk-adjusted target failed because it rejected many valid +3% rebound successes. The next step is feature-screened retraining of the single deep-learning main model with +3% touch as primary success and -3% drawdown as a risk side label.
 
 ## Recommended Next Step
 
-- Experiment id: `risk_adjusted_main_model_training_plan`
-- Hypothesis: The single integrated deep-learning route should first screen for train/development-stable features, then retrain on risk_adjusted_10d_success so weak or unstable features do not dilute the useful signal.
-- Why now: The data learnability review found stable success, risk-filter, and return-ranking clues, while the full-feature retrain still failed holdout. The next step is feature-screened retraining, not a new model branch.
+- Experiment id: `drawdown_side_label_main_model_training_plan`
+- Hypothesis: The single integrated deep-learning route should retrain with the +3% touch rule as the primary target while learning -3% drawdown as a risk side label, so valid rebound successes are not incorrectly treated as failures.
+- Why now: The drawdown side-label review showed that many valid +3% successes first touched -3%; the previous hard-risk target was too strict for the user's trading question. The next step is retraining the same main model with corrected labels, not a new model branch.
 
-This is recommended because the data learnability review found stable clues, while the full-feature model diluted them. The main question is whether screened features can improve the existing integrated deep-learning route without creating another model branch.
+This is recommended because the target review showed that the hard -3% rule rejected valid +3% rebound successes. The main question is whether the existing integrated deep-learning route improves after treating drawdown as risk context instead of automatic failure.
 
 ## Candidate Experiments
 
-### risk_adjusted_main_model_training_plan
+### drawdown_side_label_main_model_training_plan
 
-- Hypothesis: The single integrated deep-learning route should first screen for train/development-stable features, then retrain on risk_adjusted_10d_success so weak or unstable features do not dilute the useful signal.
-- Why now: The data learnability review found stable success, risk-filter, and return-ranking clues, while the full-feature retrain still failed holdout. The next step is feature-screened retraining, not a new model branch.
-- Target labels: `risk_adjusted_10d_success, old_target_success_comparison, failure_risk, same_day_relative_advantage, episode_start`
+- Hypothesis: The single integrated deep-learning route should retrain with the +3% touch rule as the primary target while learning -3% drawdown as a risk side label, so valid rebound successes are not incorrectly treated as failures.
+- Why now: The drawdown side-label review showed that many valid +3% successes first touched -3%; the previous hard-risk target was too strict for the user's trading question. The next step is retraining the same main model with corrected labels, not a new model branch.
+- Target labels: `target_success_10d_plus3_touch, drawdown_minus3_side_label, clean_success_label, painful_success_label, failure_risk, same_day_relative_advantage, episode_start`
 - Allowed inputs: `stock_daily_all, market_daily, theme_group`
 - Expected outputs: `main_model_training_spec.md, main_model_feature_screen.csv, main_model_validation_summary.csv, main_model_decision.md`
 

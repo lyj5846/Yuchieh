@@ -34,6 +34,12 @@ REQUIRED_COLUMNS = {
     "risk_adjusted_10d_success",
     "old_target_success",
     "old_success_but_risk_failed",
+    "drawdown_minus3_before_or_same_success",
+    "drawdown_minus3_before_success",
+    "same_day_profit_and_drawdown_minus3",
+    "hit_minus3_low_anytime_10d",
+    "clean_success_label",
+    "painful_success_label",
     "selection_success_label",
     "same_day_advantage_label",
     "same_day_advantage_target",
@@ -115,31 +121,49 @@ def main() -> None:
     if completed.empty:
         fail("completed train/development/holdout scores are required")
     target_mismatch = completed[
-        completed["target_success"].astype(int) != completed["risk_adjusted_10d_success"].astype(int)
+        completed["target_success"].astype(int) != completed["old_target_success"].astype(int)
     ]
     if not target_mismatch.empty:
-        fail("target_success must equal risk_adjusted_10d_success")
-    impossible_new_success = completed[
-        (completed["target_success"].astype(int) == 1)
-        & (completed["old_target_success"].astype(int) != 1)
+        fail("target_success must equal old +3% touch target")
+    impossible_hard_success = completed[
+        (completed["risk_adjusted_10d_success"].astype(int) == 1)
+        & (completed["target_success"].astype(int) != 1)
     ]
-    if not impossible_new_success.empty:
-        fail("risk-adjusted target_success cannot be 1 when old_target_success is 0")
+    if not impossible_hard_success.empty:
+        fail("hard risk-adjusted success cannot be 1 when primary target_success is 0")
     expected_old_success_failed = (
         (completed["old_target_success"].astype(int) == 1)
-        & (completed["target_success"].astype(int) == 0)
+        & (completed["risk_adjusted_10d_success"].astype(int) == 0)
     ).astype(int)
     old_success_failed_mismatch = completed[
         completed["old_success_but_risk_failed"].astype(int) != expected_old_success_failed
     ]
     if not old_success_failed_mismatch.empty:
-        fail("old_success_but_risk_failed must equal old_target_success=1 and target_success=0")
-    same_day_tie_success = completed[
+        fail("old_success_but_risk_failed must equal old_target_success=1 and hard risk-adjusted success=0")
+    same_day_tie_hard_success = completed[
         (completed["same_day_both_event"].astype(int) == 1)
-        & (completed["target_success"].astype(int) == 1)
+        & (completed["risk_adjusted_10d_success"].astype(int) == 1)
     ]
-    if not same_day_tie_success.empty:
-        fail("same-day profit/adverse tie must be conservative failure")
+    if not same_day_tie_hard_success.empty:
+        fail("same-day profit/adverse tie must fail only the hard risk-adjusted comparison")
+    same_day_tie_primary_failure = completed[
+        (completed["same_day_both_event"].astype(int) == 1)
+        & (completed["target_success"].astype(int) != 1)
+    ]
+    if not same_day_tie_primary_failure.empty:
+        fail("same-day +3% and -3% must remain primary target success under side-label contract")
+    expected_clean = (
+        (completed["target_success"].astype(int) == 1)
+        & (completed["drawdown_minus3_before_or_same_success"].astype(int) == 0)
+    ).astype(int)
+    expected_painful = (
+        (completed["target_success"].astype(int) == 1)
+        & (completed["drawdown_minus3_before_or_same_success"].astype(int) == 1)
+    ).astype(int)
+    if not completed["clean_success_label"].astype(int).eq(expected_clean).all():
+        fail("clean_success_label must mark target successes without prior/same-day -3% drawdown")
+    if not completed["painful_success_label"].astype(int).eq(expected_painful).all():
+        fail("painful_success_label must mark target successes with prior/same-day -3% drawdown")
 
     invalid_selection = completed[
         (completed["selection_success_label"] == 1)
@@ -195,12 +219,20 @@ def main() -> None:
     if "pure same-day return percentile" not in spec_text:
         fail("training spec must describe same_day_advantage_target as pure same-day return percentile")
     for phrase in [
-        "Formal target_success is risk-adjusted_10d_success",
-        "+3% close must occur before any -3% low",
-        "old_target_success for comparison only",
+        "Formal target_success is the 10-day +3% close touch rule",
+        "Drawdown side labels",
+        "risk_adjusted_10d_success is retained only as a hard-risk comparison field",
     ]:
         if phrase not in spec_text:
-            fail(f"training spec missing risk-adjusted target phrase: {phrase}")
+            fail(f"training spec missing drawdown side-label target phrase: {phrase}")
+    for phrase in [
+        "Formal target_success is risk-adjusted_10d_success",
+        "+3% close must occur before any -3% low within 10 trading days",
+        "Conservative tie rule",
+        "Old +3% touch target is retained as old_target_success for comparison only",
+    ]:
+        if phrase in spec_text:
+            fail(f"training spec must not keep old hard-risk target wording: {phrase}")
     for phrase in [
         "Feature screen: selected",
         "Feature screen uses train/development correlation stability only",
@@ -213,16 +245,21 @@ def main() -> None:
     import json
 
     decision = json.loads(DECISION_JSON_PATH.read_text(encoding="utf-8"))
-    if decision.get("confirmed_plan") != "risk_adjusted_main_model_training_plan":
-        fail("decision json must come from risk_adjusted_main_model_training_plan")
-    if decision.get("target_contract") != "risk_adjusted_10d_success":
-        fail("decision json must record risk_adjusted_10d_success target contract")
+    if decision.get("confirmed_plan") != "drawdown_side_label_main_model_training_plan":
+        fail("decision json must come from drawdown_side_label_main_model_training_plan")
+    if decision.get("target_contract") != "drawdown_side_label_10d_touch_success":
+        fail("decision json must record drawdown_side_label_10d_touch_success target contract")
     for key in [
         "holdout_old_target_success_rate",
+        "holdout_primary_touch_success_rate",
         "holdout_risk_adjusted_success_rate",
         "holdout_old_success_but_risk_failed_rate",
         "holdout_old_success_but_risk_failed_count",
         "holdout_old_success_but_risk_failed_among_old_success",
+        "holdout_clean_success_rate",
+        "holdout_painful_success_rate",
+        "holdout_painful_success_among_success",
+        "holdout_minus3_anytime_rate",
         "holdout_return_ranking_probe_return_lift",
         "holdout_return_ranking_probe_success_lift",
         "return_ranking_probe_order_ok",

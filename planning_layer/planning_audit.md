@@ -1,8 +1,8 @@
 # Planning Audit
 
-- Generated: 2026-07-02 23:48:05
+- Generated: 2026-07-03 09:21:00
 - Data latest date: 2026-06-30
-- Recommended experiment: `risk_adjusted_main_model_training_plan`
+- Recommended experiment: `drawdown_side_label_main_model_training_plan`
 - Planning output writes only to `planning_layer`.
 - Research outputs were intentionally not used as decision inputs.
 - Formal output was intentionally not written.

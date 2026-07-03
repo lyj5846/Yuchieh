@@ -78,7 +78,7 @@ def split_feature_signal(frame: pd.DataFrame, feature_cols: list[str], split: st
         & frame["has_full_20d_history"].eq(1)
     ].copy()
     rows: list[dict] = []
-    old_success = part[part["old_target_success"].eq(1)].copy()
+    old_success = part[part["target_success"].eq(1)].copy()
     for feature in feature_cols:
         if feature not in part.columns:
             continue
@@ -91,7 +91,7 @@ def split_feature_signal(frame: pd.DataFrame, feature_cols: list[str], split: st
                 f"{split}_success_corr": safe_corr(feature_series, part["target_success"]),
                 f"{split}_return_corr": safe_corr(feature_series, part["future_10d_high_close_return"]),
                 f"{split}_adverse_corr": safe_corr(feature_series, part["max_adverse_return"]),
-                f"{split}_risk_filter_corr": safe_corr(old_feature_series, old_success["target_success"]) if not old_success.empty else math.nan,
+                f"{split}_risk_filter_corr": safe_corr(old_feature_series, old_success["clean_success_label"]) if not old_success.empty else math.nan,
                 f"{split}_missing_rate": float(feature_series.isna().mean()) if len(feature_series) else math.nan,
             }
         )
@@ -145,7 +145,7 @@ def build_feature_signal(frame: pd.DataFrame, feature_cols: list[str]) -> pd.Dat
 
 def profile_record(section: str, split: str, group: str, part: pd.DataFrame) -> dict:
     complete = part[part["label_complete"]].copy()
-    old_success_count = int(complete["old_target_success"].sum()) if not complete.empty else 0
+    old_success_count = int(complete["target_success"].sum()) if not complete.empty else 0
     risk_failed_count = int(complete["old_success_but_risk_failed"].sum()) if not complete.empty else 0
     return {
         "section": section,
@@ -154,8 +154,14 @@ def profile_record(section: str, split: str, group: str, part: pd.DataFrame) -> 
         "rows": int(len(complete)),
         "days": int(complete["日期"].nunique()) if not complete.empty else 0,
         "stocks": int(complete["股票代號"].nunique()) if not complete.empty else 0,
+        "primary_success_rate": safe_mean(complete["target_success"]) if not complete.empty else math.nan,
+        "hard_risk_adjusted_success_rate": safe_mean(complete["risk_adjusted_10d_success"]) if not complete.empty else math.nan,
+        "clean_success_rate": safe_mean(complete["clean_success_label"]) if not complete.empty else math.nan,
+        "painful_success_rate": safe_mean(complete["painful_success_label"]) if not complete.empty else math.nan,
+        "drawdown_side_risk_rate": safe_mean(complete["old_success_but_risk_failed"]) if not complete.empty else math.nan,
+        "drawdown_side_risk_among_success": risk_failed_count / old_success_count if old_success_count else math.nan,
         "old_success_rate": safe_mean(complete["old_target_success"]) if not complete.empty else math.nan,
-        "risk_adjusted_success_rate": safe_mean(complete["target_success"]) if not complete.empty else math.nan,
+        "risk_adjusted_success_rate": safe_mean(complete["risk_adjusted_10d_success"]) if not complete.empty else math.nan,
         "old_success_but_risk_failed_rate": safe_mean(complete["old_success_but_risk_failed"]) if not complete.empty else math.nan,
         "risk_failed_among_old_success": risk_failed_count / old_success_count if old_success_count else math.nan,
         "avg_10d_high_close_return": safe_mean(complete["future_10d_high_close_return"]) if not complete.empty else math.nan,
@@ -229,7 +235,7 @@ def decide(feature_signal: pd.DataFrame, failure_profile: pd.DataFrame) -> dict:
     if stable_success_count >= 8 and stable_risk_filter_count >= 5 and stable_return_count >= 5:
         status = "learnable_signal_present"
         recommended = "feature_screen_then_retrain"
-        reason = "三份核心資料加已批准候選特徵內，有跨 train/development/holdout 方向穩定的成功、風險過濾與報酬排序訊號。"
+        reason = "三份核心資料加已批准候選特徵內，有跨 train/development/holdout 方向穩定的 +3% 成功、回撤風險旁支與報酬排序訊號。"
     elif stable_success_count >= 3 or stable_risk_filter_count >= 2 or stable_return_count >= 3:
         status = "weak_signal_but_not_enough_for_full_retrain"
         recommended = "feature_screen_before_any_retrain"
@@ -237,7 +243,7 @@ def decide(feature_signal: pd.DataFrame, failure_profile: pd.DataFrame) -> dict:
     else:
         status = "insufficient_signal_in_current_inputs"
         recommended = "review_target_or_add_data"
-        reason = "三份資料對先 +3% 且不能先 -3% 的順序風險，沒有足夠穩定訊號。"
+        reason = "三份資料對 +3% 主成功與 -3% 回撤旁支風險，沒有足夠穩定訊號。"
 
     return {
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -247,9 +253,10 @@ def decide(feature_signal: pd.DataFrame, failure_profile: pd.DataFrame) -> dict:
         "stable_success_feature_count": stable_success_count,
         "stable_risk_filter_feature_count": stable_risk_filter_count,
         "stable_return_feature_count": stable_return_count,
-        "holdout_risk_adjusted_success_rate": holdout.get("risk_adjusted_success_rate"),
-        "holdout_old_success_but_risk_failed_rate": holdout.get("old_success_but_risk_failed_rate"),
-        "holdout_risk_failed_among_old_success": holdout.get("risk_failed_among_old_success"),
+        "holdout_primary_success_rate": holdout.get("primary_success_rate"),
+        "holdout_hard_risk_adjusted_success_rate": holdout.get("hard_risk_adjusted_success_rate"),
+        "holdout_drawdown_side_risk_rate": holdout.get("drawdown_side_risk_rate"),
+        "holdout_drawdown_side_risk_among_success": holdout.get("drawdown_side_risk_among_success"),
         "top_success_features": stable_success.head(10)["feature"].tolist(),
         "top_risk_filter_features": stable_risk_filter.head(10)["feature"].tolist(),
         "top_return_features": stable_return.head(10)["feature"].tolist(),
@@ -278,9 +285,10 @@ def write_review_md(data_latest: str, decision: dict, feature_signal: pd.DataFra
         "",
         "## Holdout Snapshot",
         "",
-        f"- Risk-adjusted success rate: {pct(holdout_row.get('risk_adjusted_success_rate'))}",
-        f"- Old success but risk-failed rate: {pct(holdout_row.get('old_success_but_risk_failed_rate'))}",
-        f"- Risk-failed among old successes: {pct(holdout_row.get('risk_failed_among_old_success'))}",
+        f"- Primary +3% success rate: {pct(holdout_row.get('primary_success_rate'))}",
+        f"- Hard risk-adjusted comparison success rate: {pct(holdout_row.get('hard_risk_adjusted_success_rate'))}",
+        f"- Success with -3% drawdown side risk: {pct(holdout_row.get('drawdown_side_risk_rate'))}",
+        f"- Drawdown side risk among successes: {pct(holdout_row.get('drawdown_side_risk_among_success'))}",
         f"- Average max adverse return: {pct(holdout_row.get('avg_max_adverse_return'))}",
         f"- Average realized rule return: {pct(holdout_row.get('avg_realized_10d_trade_return'))}",
         "",
@@ -303,7 +311,7 @@ def write_review_md(data_latest: str, decision: dict, feature_signal: pd.DataFra
         "- This is not a probability model.",
         "- This does not update formal candidates.",
         "- This does not add a new model branch.",
-        "- It only decides whether the current core CSV inputs and approved candidate feature inputs contain stable enough signal for the risk-adjusted target.",
+        "- It only decides whether the current core CSV inputs and approved candidate feature inputs contain stable enough signal for the +3% target and drawdown side-risk labels.",
         "",
         "## Outputs",
         "",
