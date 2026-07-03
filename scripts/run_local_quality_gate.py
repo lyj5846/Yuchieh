@@ -8,6 +8,26 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
+def select_python() -> str:
+    bundled = (
+        Path.home()
+        / ".cache"
+        / "codex-runtimes"
+        / "codex-primary-runtime"
+        / "dependencies"
+        / "python"
+        / "python.exe"
+    )
+    if not bundled.exists():
+        return sys.executable
+    try:
+        import numpy  # noqa: F401
+        import pandas  # noqa: F401
+    except ModuleNotFoundError:
+        return str(bundled)
+    return sys.executable
+
+
 def run(command: list[str]) -> None:
     printable = " ".join(command)
     print(f"\n==> {printable}")
@@ -17,7 +37,7 @@ def run(command: list[str]) -> None:
 
 
 def main() -> None:
-    python = sys.executable
+    python = select_python()
     scripts = sorted(str(path.relative_to(PROJECT_ROOT)) for path in (PROJECT_ROOT / "scripts").glob("*.py"))
     run([python, "-m", "py_compile", *scripts])
     for script in [
@@ -27,6 +47,7 @@ def main() -> None:
         "scripts/check_planning_contract.py",
         "scripts/check_main_model_label_contract.py",
         "scripts/check_main_model_failure_diagnosis.py",
+        "scripts/check_formal_tracking_contract.py",
         "scripts/run_data_learnability_review.py",
         "scripts/check_data_learnability_review.py",
         "scripts/run_target_sensitivity_review.py",

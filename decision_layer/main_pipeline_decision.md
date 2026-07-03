@@ -1,6 +1,6 @@
 # Main Pipeline Decision
 
-- Generated: 2026-07-03 15:26:33
+- Generated: 2026-07-03 15:59:30
 - Raw data latest date: 2026-06-30
 - Decision: promote validated single main model.
 - Formal result: formal candidates written

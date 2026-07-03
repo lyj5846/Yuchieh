@@ -1,9 +1,9 @@
 # Formal Candidate Tracking Replay
 
-- Generated: 2026-07-03 15:26:33
+- Generated: 2026-07-03 15:59:30
 - As-of date: 2026-06-30
-- Scope: last 10 signal dates from the formal main-model score file.
-- No-lookahead rule: candidates are selected by signal-day research score and the selected gate; outcomes are checked only after selection.
+- Scope: formal signal ledger.
+- No-lookahead rule: signal rows are locked when created; only tracking fields are updated afterward.
 - Buy assumption: next trading day open.
 - Success rule: within the next 10 trading days, any close reaches buy open +3%.
 - Drawdown: -3% low is tracked as risk context, not automatic failure.

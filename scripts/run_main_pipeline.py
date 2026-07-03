@@ -17,8 +17,10 @@ VALIDATION_CONTRACT_PATH = PROJECT_ROOT / "validation_layer" / "validation_contr
 DECISION_PATH = PROJECT_ROOT / "decision_layer" / "main_pipeline_decision.md"
 FORMAL_STATUS_PATH = PROJECT_ROOT / "formal_layer" / "formal_status.md"
 FORMAL_CANDIDATES_PATH = PROJECT_ROOT / "formal_layer" / "formal_candidates.csv"
+FORMAL_SIGNAL_LEDGER_PATH = PROJECT_ROOT / "formal_layer" / "formal_signal_ledger.csv"
 FORMAL_TRACKING_CSV_PATH = PROJECT_ROOT / "formal_layer" / "formal_candidate_tracking.csv"
 FORMAL_TRACKING_MD_PATH = PROJECT_ROOT / "formal_layer" / "formal_candidate_tracking.md"
+FORMAL_DAILY_REPORT_MD_PATH = PROJECT_ROOT / "formal_layer" / "formal_daily_report.md"
 MAIN_MODEL_DECISION_PATH = PROJECT_ROOT / "decision_layer" / "main_model_decision.json"
 MAIN_MODEL_SCORES_PATH = PROJECT_ROOT / "model_layer" / "main_model_scores.csv"
 MAIN_MODEL_VALIDATION_SUMMARY_PATH = PROJECT_ROOT / "validation_layer" / "main_model_validation_summary.csv"
@@ -30,6 +32,30 @@ TRACKING_COLUMNS = [
     "stock_name",
     "research_score",
     "daily_rank",
+    "buy_date",
+    "buy_open",
+    "target_close_plus3",
+    "risk_low_minus3",
+    "observed_trading_days",
+    "days_remaining",
+    "latest_close_return",
+    "max_close_return_so_far",
+    "min_low_return_so_far",
+    "hit_plus3_close_date",
+    "hit_minus3_low_date",
+    "tracking_status",
+]
+
+LEDGER_COLUMNS = [
+    "signal_date",
+    "stock_id",
+    "stock_name",
+    "original_rank",
+    "research_score",
+    "candidate_type",
+    "created_at",
+    "last_updated_at",
+    "as_of_date",
     "buy_date",
     "buy_open",
     "target_close_plus3",
@@ -277,6 +303,50 @@ def read_model_scores() -> list[dict]:
     return rows
 
 
+def read_csv_rows(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    with path.open("r", encoding="utf-8-sig", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def write_csv_rows(path: Path, columns: list[str], rows: list[dict]) -> None:
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def signal_key(row: dict) -> tuple[str, str]:
+    return str(row.get("signal_date", "")), str(row.get("stock_id", ""))
+
+
+def candidate_to_ledger_row(candidate: dict, candidate_type: str, generated: str) -> dict:
+    return {
+        "signal_date": candidate.get("日期", ""),
+        "stock_id": candidate.get("股票代號", ""),
+        "stock_name": candidate.get("股票名稱", ""),
+        "original_rank": fmt_float(candidate.get("daily_rank"), digits=0),
+        "research_score": fmt_float(candidate.get("integrated_research_score")),
+        "candidate_type": candidate_type,
+        "created_at": generated,
+        "last_updated_at": generated,
+        "as_of_date": "",
+        "buy_date": "",
+        "buy_open": "",
+        "target_close_plus3": "",
+        "risk_low_minus3": "",
+        "observed_trading_days": "0",
+        "days_remaining": "10",
+        "latest_close_return": "",
+        "max_close_return_so_far": "",
+        "min_low_return_so_far": "",
+        "hit_plus3_close_date": "",
+        "hit_minus3_low_date": "",
+        "tracking_status": "not_started",
+    }
+
+
 def select_replay_candidates(score_rows: list[dict], stock_by_id: dict[str, list[dict]], latest_date: str, gate: float | None) -> list[dict]:
     score_rows = [row for row in score_rows if str(row.get("日期", "")) <= latest_date]
     signal_dates = sorted({str(row["日期"]) for row in score_rows})
@@ -312,42 +382,26 @@ def select_replay_candidates(score_rows: list[dict], stock_by_id: dict[str, list
     return selected
 
 
-def track_one_candidate(candidate: dict, stock_by_id: dict[str, list[dict]], as_of_date: str) -> dict:
-    stock_id = str(candidate.get("股票代號", "")).strip()
-    signal_date = str(candidate.get("日期", ""))
+def track_signal_record(record: dict, stock_by_id: dict[str, list[dict]], as_of_date: str, generated: str) -> dict:
+    stock_id = str(record.get("stock_id", "")).strip()
+    signal_date = str(record.get("signal_date", ""))
     stock_rows = stock_by_id.get(stock_id, [])
     signal_row = next((row for row in stock_rows if row.get("日期") == signal_date), None)
-    base = {
-        "as_of_date": as_of_date,
-        "signal_date": signal_date,
-        "stock_id": stock_id,
-        "stock_name": candidate.get("股票名稱", ""),
-        "research_score": fmt_float(candidate.get("integrated_research_score")),
-        "daily_rank": fmt_float(candidate.get("daily_rank"), digits=0),
-    }
+    out = {col: record.get(col, "") for col in LEDGER_COLUMNS}
+    out["as_of_date"] = as_of_date
+    out["last_updated_at"] = generated
     if not signal_row:
-        return {**base, "tracking_status": "missing_signal_price"}
+        out["tracking_status"] = "missing_signal_price"
+        return out
     next_index = int(signal_row["_trading_index"]) + 1
     if next_index >= len(stock_rows):
-        return {
-            **base,
-            "buy_date": "",
-            "buy_open": "",
-            "observed_trading_days": 0,
-            "days_remaining": 10,
-            "tracking_status": "not_started",
-        }
+        out.update({"buy_date": "", "buy_open": "", "observed_trading_days": "0", "days_remaining": "10", "tracking_status": "not_started"})
+        return out
     buy_row = stock_rows[next_index]
     buy_open = parse_float(buy_row.get("開盤價"))
     if buy_open is None or buy_open <= 0:
-        return {
-            **base,
-            "buy_date": buy_row.get("日期", ""),
-            "buy_open": "",
-            "observed_trading_days": 0,
-            "days_remaining": 10,
-            "tracking_status": "not_started",
-        }
+        out.update({"buy_date": buy_row.get("日期", ""), "buy_open": "", "observed_trading_days": "0", "days_remaining": "10", "tracking_status": "not_started"})
+        return out
     future_rows = [
         row
         for row in stock_rows[next_index : next_index + 10]
@@ -381,34 +435,89 @@ def track_one_candidate(candidate: dict, stock_by_id: dict[str, list[dict]], as_
         status = "failure"
     else:
         status = "tracking"
-    return {
-        **base,
-        "buy_date": buy_row.get("日期", ""),
-        "buy_open": fmt_float(buy_open),
-        "target_close_plus3": fmt_float(target_close),
-        "risk_low_minus3": fmt_float(risk_low),
-        "observed_trading_days": observed_days,
-        "days_remaining": max(0, 10 - observed_days),
-        "latest_close_return": fmt_float(latest_close_return),
-        "max_close_return_so_far": fmt_float(max_close_return),
-        "min_low_return_so_far": fmt_float(min_low_return),
-        "hit_plus3_close_date": success_date,
-        "hit_minus3_low_date": drawdown_date,
-        "tracking_status": status,
-    }
+    out.update(
+        {
+            "buy_date": buy_row.get("日期", ""),
+            "buy_open": fmt_float(buy_open),
+            "target_close_plus3": fmt_float(target_close),
+            "risk_low_minus3": fmt_float(risk_low),
+            "observed_trading_days": str(observed_days),
+            "days_remaining": str(max(0, 10 - observed_days)),
+            "latest_close_return": fmt_float(latest_close_return),
+            "max_close_return_so_far": fmt_float(max_close_return),
+            "min_low_return_so_far": fmt_float(min_low_return),
+            "hit_plus3_close_date": success_date,
+            "hit_minus3_low_date": drawdown_date,
+            "tracking_status": status,
+        }
+    )
+    return out
 
 
-def write_tracking_replay(config: dict, latest_date: str, decision: dict) -> None:
+def tracking_view_from_ledger(ledger_rows: list[dict]) -> list[dict]:
+    return [
+        {
+            "as_of_date": row.get("as_of_date", ""),
+            "signal_date": row.get("signal_date", ""),
+            "stock_id": row.get("stock_id", ""),
+            "stock_name": row.get("stock_name", ""),
+            "research_score": row.get("research_score", ""),
+            "daily_rank": row.get("original_rank", ""),
+            "buy_date": row.get("buy_date", ""),
+            "buy_open": row.get("buy_open", ""),
+            "target_close_plus3": row.get("target_close_plus3", ""),
+            "risk_low_minus3": row.get("risk_low_minus3", ""),
+            "observed_trading_days": row.get("observed_trading_days", ""),
+            "days_remaining": row.get("days_remaining", ""),
+            "latest_close_return": row.get("latest_close_return", ""),
+            "max_close_return_so_far": row.get("max_close_return_so_far", ""),
+            "min_low_return_so_far": row.get("min_low_return_so_far", ""),
+            "hit_plus3_close_date": row.get("hit_plus3_close_date", ""),
+            "hit_minus3_low_date": row.get("hit_minus3_low_date", ""),
+            "tracking_status": row.get("tracking_status", ""),
+        }
+        for row in ledger_rows
+    ]
+
+
+def merge_signal_ledger(
+    config: dict,
+    latest_date: str,
+    decision: dict,
+    today_candidates: list[dict],
+    generated: str,
+) -> tuple[list[dict], list[dict]]:
     stock_by_id = read_stock_rows(Path(config["allowed_inputs"]["stock_daily_all"]))
     score_rows = read_model_scores()
     gate = parse_float(decision.get("selected_gate"))
-    replay_candidates = select_replay_candidates(score_rows, stock_by_id, latest_date, gate)
-    tracking_rows = [track_one_candidate(row, stock_by_id, latest_date) for row in replay_candidates]
-    with FORMAL_TRACKING_CSV_PATH.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=TRACKING_COLUMNS, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(tracking_rows)
+    ledger_rows = read_csv_rows(FORMAL_SIGNAL_LEDGER_PATH)
+    existing = {signal_key(row) for row in ledger_rows}
+    additions: list[dict] = []
 
+    if not ledger_rows:
+        for candidate in select_replay_candidates(score_rows, stock_by_id, latest_date, gate):
+            candidate_type = "new_formal" if candidate.get("日期") == latest_date else "replay_seed"
+            row = candidate_to_ledger_row(candidate, candidate_type, generated)
+            if signal_key(row) not in existing:
+                additions.append(row)
+                existing.add(signal_key(row))
+    else:
+        for candidate in today_candidates:
+            row = candidate_to_ledger_row(candidate, "new_formal", generated)
+            if signal_key(row) not in existing:
+                additions.append(row)
+                existing.add(signal_key(row))
+
+    ledger_rows.extend(additions)
+    updated = [track_signal_record(row, stock_by_id, latest_date, generated) for row in ledger_rows]
+    updated.sort(key=lambda row: (row.get("signal_date", ""), int(float(row.get("original_rank") or 999999)), row.get("stock_id", "")))
+    write_csv_rows(FORMAL_SIGNAL_LEDGER_PATH, LEDGER_COLUMNS, updated)
+    return updated, additions
+
+
+def write_tracking_outputs(latest_date: str, ledger_rows: list[dict]) -> None:
+    tracking_rows = tracking_view_from_ledger(ledger_rows)
+    write_csv_rows(FORMAL_TRACKING_CSV_PATH, TRACKING_COLUMNS, tracking_rows)
     status_counts: dict[str, int] = {}
     for row in tracking_rows:
         status_counts[row.get("tracking_status", "unknown")] = status_counts.get(row.get("tracking_status", "unknown"), 0) + 1
@@ -417,8 +526,8 @@ def write_tracking_replay(config: dict, latest_date: str, decision: dict) -> Non
         "",
         f"- Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         f"- As-of date: {latest_date}",
-        "- Scope: last 10 signal dates from the formal main-model score file.",
-        "- No-lookahead rule: candidates are selected by signal-day research score and the selected gate; outcomes are checked only after selection.",
+        "- Scope: formal signal ledger.",
+        "- No-lookahead rule: signal rows are locked when created; only tracking fields are updated afterward.",
         "- Buy assumption: next trading day open.",
         "- Success rule: within the next 10 trading days, any close reaches buy open +3%.",
         "- Drawdown: -3% low is tracked as risk context, not automatic failure.",
@@ -449,6 +558,146 @@ def write_empty_tracking(latest_date: str, reason: str) -> None:
         "",
     ]
     FORMAL_TRACKING_MD_PATH.write_text("\n".join(lines), encoding="utf-8")
+
+
+def latest_raw_top_rows(latest_date: str, limit: int = 10) -> list[dict]:
+    rows = [row for row in read_model_scores() if str(row.get("日期", "")) == latest_date]
+    rows.sort(key=lambda row: row["_score"], reverse=True)
+    return rows[:limit]
+
+
+def find_recent_ledger_row(raw_row: dict, ledger_rows: list[dict], stock_by_id: dict[str, list[dict]], latest_date: str) -> dict | None:
+    stock_id = str(raw_row.get("股票代號", ""))
+    stock_rows = stock_by_id.get(stock_id, [])
+    latest_price_row = next((row for row in stock_rows if row.get("日期") == latest_date), None)
+    if not latest_price_row:
+        return None
+    latest_index = int(latest_price_row["_trading_index"])
+    matches = []
+    for row in ledger_rows:
+        if row.get("stock_id") != stock_id or row.get("signal_date") == latest_date:
+            continue
+        signal_price_row = next((item for item in stock_rows if item.get("日期") == row.get("signal_date")), None)
+        if not signal_price_row:
+            continue
+        distance = latest_index - int(signal_price_row["_trading_index"])
+        if 0 < distance <= 10:
+            matches.append((distance, row))
+    if not matches:
+        return None
+    matches.sort(key=lambda item: item[0])
+    return matches[0][1]
+
+
+def continuation_rows(config: dict, latest_date: str, ledger_rows: list[dict], today_candidates: list[dict]) -> list[dict]:
+    stock_by_id = read_stock_rows(Path(config["allowed_inputs"]["stock_daily_all"]))
+    today_keys = {str(row.get("股票代號", "")) for row in today_candidates}
+    rows: list[dict] = []
+    for raw in latest_raw_top_rows(latest_date, limit=10):
+        stock_id = str(raw.get("股票代號", ""))
+        if stock_id in today_keys:
+            continue
+        prior = find_recent_ledger_row(raw, ledger_rows, stock_by_id, latest_date)
+        if not prior:
+            continue
+        rows.append(
+            {
+                "stock_id": stock_id,
+                "stock_name": raw.get("股票名稱", ""),
+                "raw_rank": fmt_float(raw.get("daily_rank"), digits=0),
+                "research_score": fmt_float(raw.get("integrated_research_score")),
+                "previous_signal_date": prior.get("signal_date", ""),
+                "previous_tracking_status": prior.get("tracking_status", ""),
+                "max_close_return_so_far": prior.get("max_close_return_so_far", ""),
+            }
+        )
+    return rows
+
+
+def pct_text(value: str) -> str:
+    parsed = parse_float(value)
+    if parsed is None:
+        return ""
+    return f"{parsed:.2%}"
+
+
+def md_table(columns: list[str], rows: list[dict]) -> list[str]:
+    lines = ["| " + " | ".join(columns) + " |", "| " + " | ".join(["---"] * len(columns)) + " |"]
+    if not rows:
+        lines.append("| " + " | ".join([""] * len(columns)) + " |")
+        return lines
+    for row in rows:
+        lines.append("| " + " | ".join(str(row.get(col, "")) for col in columns) + " |")
+    return lines
+
+
+def write_daily_report(latest_date: str, today_candidates: list[dict], continuations: list[dict], ledger_rows: list[dict]) -> None:
+    new_rows = [
+        {
+            "股票": f"{row.get('股票代號', '')} {row.get('股票名稱', '')}",
+            "原始排名": fmt_float(row.get("daily_rank"), digits=0),
+            "research_score": fmt_float(row.get("integrated_research_score")),
+            "類型": "新進正式候選",
+        }
+        for row in today_candidates
+    ]
+    continuation_display = [
+        {
+            "股票": f"{row.get('stock_id', '')} {row.get('stock_name', '')}",
+            "原始排名": row.get("raw_rank", ""),
+            "research_score": row.get("research_score", ""),
+            "前次訊號日": row.get("previous_signal_date", ""),
+            "追蹤狀態": row.get("previous_tracking_status", ""),
+            "目前最高收盤報酬": pct_text(row.get("max_close_return_so_far", "")),
+        }
+        for row in continuations
+    ]
+    tracking_display = [
+        {
+            "訊號日": row.get("signal_date", ""),
+            "股票": f"{row.get('stock_id', '')} {row.get('stock_name', '')}",
+            "買入日": row.get("buy_date", ""),
+            "已追蹤日": row.get("observed_trading_days", ""),
+            "最高收盤報酬": pct_text(row.get("max_close_return_so_far", "")),
+            "+3%達成日": row.get("hit_plus3_close_date", ""),
+            "-3%風險日": row.get("hit_minus3_low_date", ""),
+            "狀態": row.get("tracking_status", ""),
+        }
+        for row in ledger_rows
+    ]
+    lines = [
+        "# Formal Daily Report",
+        "",
+        f"- Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"- Report date: {latest_date}",
+        "- research_score 是排序分數，不是機率。",
+        "- strategy_backtest_hit_rate 是策略歷史回測成功率，不是個股成功率。",
+        "",
+        "## 今日新進正式候選",
+        "",
+        *md_table(["股票", "原始排名", "research_score", "類型"], new_rows),
+        "",
+        "## 高分續強但已追蹤",
+        "",
+        *md_table(["股票", "原始排名", "research_score", "前次訊號日", "追蹤狀態", "目前最高收盤報酬"], continuation_display),
+        "",
+        "## 正式候選追蹤",
+        "",
+        *md_table(["訊號日", "股票", "買入日", "已追蹤日", "最高收盤報酬", "+3%達成日", "-3%風險日", "狀態"], tracking_display),
+        "",
+    ]
+    FORMAL_DAILY_REPORT_MD_PATH.write_text("\n".join(lines), encoding="utf-8")
+
+
+def refresh_existing_ledger(config: dict, latest_date: str, generated: str) -> list[dict]:
+    ledger_rows = read_csv_rows(FORMAL_SIGNAL_LEDGER_PATH)
+    if not ledger_rows:
+        return []
+    stock_by_id = read_stock_rows(Path(config["allowed_inputs"]["stock_daily_all"]))
+    updated = [track_signal_record(row, stock_by_id, latest_date, generated) for row in ledger_rows]
+    updated.sort(key=lambda row: (row.get("signal_date", ""), int(float(row.get("original_rank") or 999999)), row.get("stock_id", "")))
+    write_csv_rows(FORMAL_SIGNAL_LEDGER_PATH, LEDGER_COLUMNS, updated)
+    return updated
 
 
 def main_model_holdout_summary() -> dict:
@@ -534,9 +783,18 @@ def write_formal_files(config: dict, latest_date: str, reason: str, decision: di
                     ]
                 )
     if approved_main_model(decision or {}):
-        write_tracking_replay(config, latest_date, decision or {})
+        ledger_rows, _ = merge_signal_ledger(config, latest_date, decision or {}, candidates or [], generated)
+        continuations = continuation_rows(config, latest_date, ledger_rows, candidates or [])
+        write_tracking_outputs(latest_date, ledger_rows)
+        write_daily_report(latest_date, candidates or [], continuations, ledger_rows)
     else:
-        write_empty_tracking(latest_date, "main model is not approved for formal tracking replay")
+        ledger_rows = refresh_existing_ledger(config, latest_date, generated)
+        if ledger_rows:
+            write_tracking_outputs(latest_date, ledger_rows)
+            write_daily_report(latest_date, [], [], ledger_rows)
+        else:
+            write_empty_tracking(latest_date, "main model is not approved for formal tracking replay")
+            write_daily_report(latest_date, [], [], [])
 
 
 def main() -> None:
