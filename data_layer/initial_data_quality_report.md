@@ -1,6 +1,6 @@
 # Initial Data Quality Report
 
-- Generated: 2026-07-03 09:28:02
+- Generated: 2026-07-03 12:56:57
 - Formal candidate default: 目前無可信正式候選
 
 ## Allowed Inputs

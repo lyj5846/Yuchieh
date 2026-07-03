@@ -1,6 +1,6 @@
 # Main Model Decision
 
-- Generated: 2026-07-03 09:25:14
+- Generated: 2026-07-03 12:54:21
 - Status: not_promoted
 - Formal approved: False
 - Reason: main model did not pass every validation gate; formal output must remain unchanged
@@ -15,9 +15,9 @@
 - Holdout clean success rate: 39.22%
 - Holdout painful success rate: 32.72%
 - Holdout painful success among successes: 45.48%
-- Holdout success rate: 78.33%
-- Holdout success lift: 8.88%
-- Holdout return lift: 4.08%
+- Holdout success rate: 85.96%
+- Holdout success lift: 15.88%
+- Holdout return lift: 5.36%
 - Holdout return-ranking probe success lift: 7.81%
 - Holdout return-ranking probe return lift: 4.24%
 - Score band ordering valid: False
@@ -26,9 +26,13 @@
 - Risk band ordering valid: True
 - Active holdout months: 2
 - Development monthly positive months: 3/3
-- Development min monthly success lift: 6.48%
-- Development min monthly return lift: 4.96%
+- Development min monthly success lift: 8.50%
+- Development min monthly return lift: 4.30%
 - Selected weight stability passed: True
-- Selected balanced objective score: 0.169173
+- Selected development score-band passed: True
+- Development score-band success delta: 5.83%
+- Development score-band advantage delta: 11.90%
+- Development score-band return delta: 1.87%
+- Selected balanced objective score: 0.173979
 
 Formal output is not updated by this training pipeline.

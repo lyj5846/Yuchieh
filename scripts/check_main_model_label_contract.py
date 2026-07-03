@@ -269,6 +269,10 @@ def main() -> None:
         "development_min_monthly_success_lift",
         "development_min_monthly_return_lift",
         "selected_weight_stability_passed",
+        "selected_weight_score_band_passed",
+        "development_score_band_success_delta",
+        "development_score_band_advantage_delta",
+        "development_score_band_return_delta",
         "selected_weight_objective_score",
         "feature_screen_enabled",
         "feature_screen_source",
@@ -293,6 +297,8 @@ def main() -> None:
         fail("development positive months cannot exceed total months")
     if decision["selected_weight_stability_passed"] is not True:
         fail("selected strategy must pass development monthly stability before holdout validation")
+    if decision["selected_weight_score_band_passed"] is not True:
+        fail("selected strategy must pass development score-band ordering before holdout validation")
 
     tuning = pd.read_csv(STRATEGY_TUNING_PATH, encoding="utf-8-sig")
     required_tuning_columns = {
@@ -301,6 +307,10 @@ def main() -> None:
         "min_monthly_success_lift",
         "min_monthly_return_lift",
         "monthly_stability_passed",
+        "score_band_success_delta",
+        "score_band_advantage_delta",
+        "score_band_return_delta",
+        "score_band_order_passed",
         "balanced_objective_score",
     }
     missing_tuning = sorted(required_tuning_columns - set(tuning.columns))

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-03 09:27:42",
+  "generated_at": "2026-07-03 12:56:40",
   "status": "coverage_ready_for_limited_attention_disposition_features",
   "recommended_next_step": "prepare_limited_attention_disposition_feature_contract",
   "reason": "資料跨 train/development/holdout 已足夠，但事件高度集中於 TWSE 注意/處置；只能先做有限風險特徵，不能宣稱完整事件風險。",

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-03 09:25:14",
+  "generated_at": "2026-07-03 12:54:21",
   "confirmed_plan": "drawdown_side_label_main_model_training_plan",
   "target_contract": "drawdown_side_label_10d_touch_success",
   "status": "not_promoted",
@@ -48,17 +48,17 @@
     "收盤價"
   ],
   "selected_weights": [
-    1.8,
+    2.2,
     0.6,
     0.2,
-    0.2
+    0.0
   ],
-  "selected_gate": 1.4803780794143677,
+  "selected_gate": 1.9442562103271483,
   "training_loss_start": 0.592978298664093,
   "training_loss_end": 0.4295565187931061,
-  "holdout_success_rate": 0.7833333333333333,
-  "holdout_success_lift": 0.08877901094036555,
-  "holdout_return_lift": 0.04084336520396195,
+  "holdout_success_rate": 0.8596491228070176,
+  "holdout_success_lift": 0.15882335320372631,
+  "holdout_return_lift": 0.05357784645309534,
   "holdout_old_target_success_rate": 0.7193119016112711,
   "holdout_primary_touch_success_rate": 0.7193119016112711,
   "holdout_risk_adjusted_success_rate": 0.39215381022806883,
@@ -79,10 +79,14 @@
   "same_day_advantage_loss_weight": 3.0,
   "development_monthly_positive_months": 3,
   "development_monthly_total_months": 3,
-  "development_min_monthly_success_lift": 0.06480958654871694,
-  "development_min_monthly_return_lift": 0.049648770056061636,
-  "development_mean_monthly_success_lift": 0.14645157579940182,
-  "development_mean_monthly_return_lift": 0.05398001816885894,
+  "development_min_monthly_success_lift": 0.08502258610954261,
+  "development_min_monthly_return_lift": 0.042990778670976365,
+  "development_mean_monthly_success_lift": 0.2564068598653579,
+  "development_mean_monthly_return_lift": 0.05950938218896023,
   "selected_weight_stability_passed": true,
-  "selected_weight_objective_score": 0.16917264532281862
+  "selected_weight_score_band_passed": true,
+  "development_score_band_success_delta": 0.058336942887487586,
+  "development_score_band_advantage_delta": 0.11898947071089233,
+  "development_score_band_return_delta": 0.01872306847767137,
+  "selected_weight_objective_score": 0.17397929641962956
 }

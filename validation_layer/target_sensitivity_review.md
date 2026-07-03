@@ -1,6 +1,6 @@
 # Target Sensitivity Review
 
-- Generated: 2026-07-03 09:27:38
+- Generated: 2026-07-03 12:56:36
 - Data latest date: 2026-06-30
 - Scope: label-only target sensitivity; no model training; no stock candidates.
 - Formal output: unchanged by this review.

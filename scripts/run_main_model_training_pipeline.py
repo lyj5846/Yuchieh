@@ -777,13 +777,65 @@ def monthly_lift_summary(full: pd.DataFrame, picked: pd.DataFrame) -> dict:
     }
 
 
+def score_band_summary(scored: pd.DataFrame) -> dict:
+    if scored.empty or scored["integrated_research_score"].nunique(dropna=True) < 4:
+        return {
+            "score_band_success_delta": math.nan,
+            "score_band_advantage_delta": math.nan,
+            "score_band_return_delta": math.nan,
+            "score_band_order_passed": False,
+        }
+    work = scored.copy()
+    work["score_band"] = pd.qcut(
+        work["integrated_research_score"].rank(method="first"),
+        q=4,
+        labels=False,
+        duplicates="drop",
+    )
+    grouped = work.groupby("score_band").agg(
+        success_rate=("target_success", "mean"),
+        advantage_rate=("same_day_advantage_label", "mean"),
+        avg_return=("future_10d_high_close_return", "mean"),
+    )
+    if len(grouped) < 2:
+        return {
+            "score_band_success_delta": math.nan,
+            "score_band_advantage_delta": math.nan,
+            "score_band_return_delta": math.nan,
+            "score_band_order_passed": False,
+        }
+    success_delta = float(grouped["success_rate"].iloc[-1] - grouped["success_rate"].iloc[0])
+    advantage_delta = float(grouped["advantage_rate"].iloc[-1] - grouped["advantage_rate"].iloc[0])
+    return_delta = float(grouped["avg_return"].iloc[-1] - grouped["avg_return"].iloc[0])
+    return {
+        "score_band_success_delta": success_delta,
+        "score_band_advantage_delta": advantage_delta,
+        "score_band_return_delta": return_delta,
+        "score_band_order_passed": bool(success_delta > 0 and advantage_delta > 0 and return_delta > 0),
+    }
+
+
 def balanced_objective(row: pd.Series) -> float:
     success_lift = float(row["success_lift"]) if not pd.isna(row["success_lift"]) else -1.0
     return_lift = float(row["return_lift"]) if not pd.isna(row["return_lift"]) else -1.0
+    score_band_success = float(row.get("score_band_success_delta", math.nan))
+    score_band_advantage = float(row.get("score_band_advantage_delta", math.nan))
+    score_band_return = float(row.get("score_band_return_delta", math.nan))
     monthly_positive = float(row.get("monthly_positive_months", 0) or 0)
     concentration_penalty = max(0.0, float(row["top_industry_share"]) - 0.50) if not pd.isna(row["top_industry_share"]) else 0.20
     weak_side = min(success_lift, return_lift)
-    return weak_side + 0.25 * success_lift + 0.25 * return_lift + 0.02 * monthly_positive - 0.10 * concentration_penalty
+    band_terms = [score_band_success, score_band_advantage, score_band_return]
+    valid_band_terms = [value for value in band_terms if not pd.isna(value)]
+    band_floor = min(valid_band_terms) if valid_band_terms else -1.0
+    return (
+        weak_side
+        + 0.25 * success_lift
+        + 0.25 * return_lift
+        + 0.20 * band_floor
+        + 0.05 * max(0.0, score_band_success if not pd.isna(score_band_success) else -1.0)
+        + 0.02 * monthly_positive
+        - 0.10 * concentration_penalty
+    )
 
 
 def tune_strategy(dev: pd.DataFrame) -> tuple[tuple[float, float, float, float], float | None, pd.DataFrame, dict]:
@@ -806,6 +858,7 @@ def tune_strategy(dev: pd.DataFrame) -> tuple[tuple[float, float, float, float],
             picked = select_top3(scored, gate)
             row = summary_row(scored, picked, "development", "integrated_main_top3", gate)
             row["weights"] = ",".join(str(v) for v in weights)
+            row.update(score_band_summary(scored))
             row.update(monthly_lift_summary(scored, picked))
             row["balanced_objective_score"] = balanced_objective(pd.Series(row))
             rows.append(row)
@@ -815,6 +868,7 @@ def tune_strategy(dev: pd.DataFrame) -> tuple[tuple[float, float, float, float],
         & (table["success_lift"] > 0)
         & (table["return_lift"] > 0)
         & (table["monthly_stability_passed"])
+        & (table["score_band_order_passed"])
         & (table["top_stock_share"] <= 0.25)
         & (table["top_industry_share"] <= 0.60)
     ].copy()
@@ -826,12 +880,15 @@ def tune_strategy(dev: pd.DataFrame) -> tuple[tuple[float, float, float, float],
         [
             "balanced_objective_score",
             "monthly_positive_months",
+            "score_band_success_delta",
+            "score_band_advantage_delta",
+            "score_band_return_delta",
             "success_lift",
             "return_lift",
             "success_rate",
             "days",
         ],
-        ascending=[False, False, False, False, False, False],
+        ascending=[False, False, False, False, False, False, False, False, False],
     )
     best = feasible.iloc[0]
     weights = tuple(float(v) for v in str(best["weights"]).split(","))
@@ -1193,12 +1250,16 @@ def main() -> None:
                 "- Uses approved attention/disposition features as candidate risk/context inputs.",
                 f"- same_day_advantage loss weight: {SAME_DAY_ADVANTAGE_LOSS_WEIGHT}.",
                 "- Strategy tuning: selected on development with monthly stability and a balanced success/return objective.",
+                "- Strategy tuning requires development score bands to improve success, same-day advantage, and high-close return from low to high score.",
                 "- Development monthly stability requires most active months to have both success lift and return lift above zero.",
                 f"- Feature lookback: {LOOKBACK_DAYS} trading days.",
                 f"- Episode gap: {EPISODE_GAP_DAYS} trading days.",
                 f"- Selected weights: {', '.join(str(v) for v in weights)}",
                 f"- Selected gate: {gate if gate is not None else 'none'}",
                 f"- Selected development positive months: {int(selected_strategy.get('monthly_positive_months', 0))}/{int(selected_strategy.get('monthly_total_months', 0))}",
+                f"- Selected development score-band success delta: {float(selected_strategy.get('score_band_success_delta', math.nan)):.6f}",
+                f"- Selected development score-band advantage delta: {float(selected_strategy.get('score_band_advantage_delta', math.nan)):.6f}",
+                f"- Selected development score-band return delta: {float(selected_strategy.get('score_band_return_delta', math.nan)):.6f}",
                 f"- Selected balanced objective score: {float(selected_strategy.get('balanced_objective_score', math.nan)):.6f}",
                 "- Raw outputs are research ranking scores, not calibrated success rates.",
                 "",
@@ -1265,6 +1326,10 @@ def main() -> None:
         "development_mean_monthly_success_lift": float(selected_strategy.get("mean_monthly_success_lift", math.nan)),
         "development_mean_monthly_return_lift": float(selected_strategy.get("mean_monthly_return_lift", math.nan)),
         "selected_weight_stability_passed": bool(selected_strategy.get("monthly_stability_passed", False)),
+        "selected_weight_score_band_passed": bool(selected_strategy.get("score_band_order_passed", False)),
+        "development_score_band_success_delta": float(selected_strategy.get("score_band_success_delta", math.nan)),
+        "development_score_band_advantage_delta": float(selected_strategy.get("score_band_advantage_delta", math.nan)),
+        "development_score_band_return_delta": float(selected_strategy.get("score_band_return_delta", math.nan)),
         "selected_weight_objective_score": float(selected_strategy.get("balanced_objective_score", math.nan)),
     }
     DECISION_JSON_PATH.write_text(json.dumps(decision, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -1302,6 +1367,10 @@ def main() -> None:
                 f"- Development min monthly success lift: {fmt_pct(decision['development_min_monthly_success_lift'])}",
                 f"- Development min monthly return lift: {fmt_pct(decision['development_min_monthly_return_lift'])}",
                 f"- Selected weight stability passed: {decision['selected_weight_stability_passed']}",
+                f"- Selected development score-band passed: {decision['selected_weight_score_band_passed']}",
+                f"- Development score-band success delta: {fmt_pct(decision['development_score_band_success_delta'])}",
+                f"- Development score-band advantage delta: {fmt_pct(decision['development_score_band_advantage_delta'])}",
+                f"- Development score-band return delta: {fmt_pct(decision['development_score_band_return_delta'])}",
                 f"- Selected balanced objective score: {decision['selected_weight_objective_score']:.6f}",
                 "",
                 "Formal output is not updated by this training pipeline.",

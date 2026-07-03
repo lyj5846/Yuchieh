@@ -1,6 +1,6 @@
 # Main Model Training Spec
 
-- Generated: 2026-07-03 09:25:14
+- Generated: 2026-07-03 12:54:21
 - Confirmed plan: `drawdown_side_label_main_model_training_plan`
 - Core data sources: three approved CSV inputs.
 - Candidate feature input: approved attention/disposition events only.
@@ -20,11 +20,15 @@
 - Uses approved attention/disposition features as candidate risk/context inputs.
 - same_day_advantage loss weight: 3.0.
 - Strategy tuning: selected on development with monthly stability and a balanced success/return objective.
+- Strategy tuning requires development score bands to improve success, same-day advantage, and high-close return from low to high score.
 - Development monthly stability requires most active months to have both success lift and return lift above zero.
 - Feature lookback: 20 trading days.
 - Episode gap: 10 trading days.
-- Selected weights: 1.8, 0.6, 0.2, 0.2
-- Selected gate: 1.4803780794143677
+- Selected weights: 2.2, 0.6, 0.2, 0.0
+- Selected gate: 1.9442562103271483
 - Selected development positive months: 3/3
-- Selected balanced objective score: 0.169173
+- Selected development score-band success delta: 0.058337
+- Selected development score-band advantage delta: 0.118989
+- Selected development score-band return delta: 0.018723
+- Selected balanced objective score: 0.173979
 - Raw outputs are research ranking scores, not calibrated success rates.
