@@ -1,10 +1,11 @@
 # Main Model Training Spec
 
-- Generated: 2026-07-03 00:13:59
+- Generated: 2026-07-03 08:40:35
 - Confirmed plan: `risk_adjusted_main_model_training_plan`
-- Data sources: three approved CSV inputs only.
+- Core data sources: three approved CSV inputs.
+- Candidate feature input: approved attention/disposition events only.
 - Model: one hidden-layer numpy MLP with four outputs.
-- Feature screen: selected 48 of 108 generated features.
+- Feature screen: selected 48 of 115 generated features.
 - Feature screen source: `validation_layer/data_learnability_feature_signal.csv`.
 - Feature screen uses train/development correlation stability only; holdout columns are audit-only.
 - Feature screen min absolute train/development correlation: 0.01.
@@ -16,13 +17,14 @@
 - Old +3% touch target is retained as old_target_success for comparison only.
 - Same-day advantage soft target: pure same-day return percentile.
 - Uses same-day relative return-ranking features against all stocks, same industry, and market indices.
+- Uses approved attention/disposition features as candidate risk/context inputs.
 - same_day_advantage loss weight: 3.0.
 - Strategy tuning: selected on development with monthly stability and a balanced success/return objective.
 - Development monthly stability requires most active months to have both success lift and return lift above zero.
 - Feature lookback: 20 trading days.
 - Episode gap: 10 trading days.
-- Selected weights: 1.0, 1.5, 0.0, 0.0
-- Selected gate: 1.3850385904312135
+- Selected weights: 1.2, 1.0, 0.2, 0.0
+- Selected gate: 1.24796724319458
 - Selected development positive months: 3/3
-- Selected balanced objective score: 0.178333
+- Selected balanced objective score: 0.202998
 - Raw outputs are research ranking scores, not calibrated success rates.

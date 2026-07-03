@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-03 00:13:59",
+  "generated_at": "2026-07-03 08:40:35",
   "confirmed_plan": "risk_adjusted_main_model_training_plan",
   "target_contract": "risk_adjusted_10d_success",
   "status": "not_promoted",
@@ -9,7 +9,21 @@
   "feature_screen_source": "validation_layer\\data_learnability_feature_signal.csv",
   "feature_screen_output": "validation_layer\\main_model_feature_screen.csv",
   "feature_screen_uses_holdout_for_selection": false,
-  "original_feature_count": 108,
+  "candidate_feature_inputs_enabled": true,
+  "candidate_feature_input_keys": [
+    "attention_disposition_events"
+  ],
+  "attention_disposition_feature_count": 7,
+  "attention_disposition_feature_names": [
+    "attention_disposition_known_count_1d",
+    "attention_disposition_known_count_3d",
+    "attention_disposition_known_count_10d",
+    "attention_active_on_signal_date",
+    "disposition_active_on_signal_date",
+    "days_since_last_attention_disposition",
+    "has_attention_disposition_history_20d"
+  ],
+  "original_feature_count": 115,
   "selected_feature_count": 48,
   "selected_feature_preview": [
     "volatility_10",
@@ -34,24 +48,24 @@
     "theme_航空／運輸"
   ],
   "selected_weights": [
+    1.2,
     1.0,
-    1.5,
-    0.0,
+    0.2,
     0.0
   ],
-  "selected_gate": 1.3850385904312135,
-  "training_loss_start": 0.5982462167739868,
-  "training_loss_end": 0.4172893762588501,
-  "holdout_success_rate": 0.22522522522522523,
-  "holdout_success_lift": -0.16308425670975463,
-  "holdout_return_lift": 0.02181828317492987,
+  "selected_gate": 1.24796724319458,
+  "training_loss_start": 0.5910784602165222,
+  "training_loss_end": 0.42241787910461426,
+  "holdout_success_rate": 0.3103448275862069,
+  "holdout_success_lift": -0.060233068819413094,
+  "holdout_return_lift": 0.01018440491471112,
   "holdout_old_target_success_rate": 0.7193119016112711,
   "holdout_risk_adjusted_success_rate": 0.39215381022806883,
   "holdout_old_success_but_risk_failed_rate": 0.3271580913832023,
   "holdout_old_success_but_risk_failed_count": 4203,
   "holdout_old_success_but_risk_failed_among_old_success": 0.4548209068282653,
-  "holdout_return_ranking_probe_success_lift": -0.09802464589200005,
-  "holdout_return_ranking_probe_return_lift": 0.0339870871893552,
+  "holdout_return_ranking_probe_success_lift": -0.03920111648023533,
+  "holdout_return_ranking_probe_return_lift": 0.04205261801672011,
   "score_order_ok": false,
   "advantage_order_ok": true,
   "return_ranking_probe_order_ok": true,
@@ -60,10 +74,10 @@
   "same_day_advantage_loss_weight": 3.0,
   "development_monthly_positive_months": 3,
   "development_monthly_total_months": 3,
-  "development_min_monthly_success_lift": 0.15019762845849804,
-  "development_min_monthly_return_lift": 0.031881165272365425,
-  "development_mean_monthly_success_lift": 0.2861509495340305,
-  "development_mean_monthly_return_lift": 0.04540187212529118,
+  "development_min_monthly_success_lift": 0.07604813820819356,
+  "development_min_monthly_return_lift": 0.01608865651720698,
+  "development_mean_monthly_success_lift": 0.27601336919715574,
+  "development_mean_monthly_return_lift": 0.07131750578198269,
   "selected_weight_stability_passed": true,
-  "selected_weight_objective_score": 0.1783334624875429
+  "selected_weight_objective_score": 0.20299844652067953
 }
