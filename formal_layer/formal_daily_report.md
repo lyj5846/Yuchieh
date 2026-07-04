@@ -1,6 +1,6 @@
 # Formal Daily Report
 
-- Generated: 2026-07-04 08:14:37
+- Generated: 2026-07-04 08:19:05
 - Report date: 2026-07-02
 - research_score 是排序分數，不是機率。
 - strategy_backtest_hit_rate 是策略歷史回測成功率，不是個股成功率。

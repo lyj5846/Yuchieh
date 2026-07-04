@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-04 08:14:55",
+  "generated_at": "2026-07-04 08:19:21",
   "data_latest_date": "2026-07-03",
   "diagnosis_status": "completed",
   "main_model_status": "passed_holdout_validation",
@@ -8,7 +8,7 @@
   "recommendation_summary": "回撤旁支標籤主模型已通過訓練驗證；下一步只能由正式入口決定是否更新候選。",
   "formal_outputs_unchanged": true,
   "formal_hashes": {
-    "formal_status_sha256": "E064399E6B6D90F0382DF7B015863E870C271C5188086FAFB10D7CD4161EC94C",
+    "formal_status_sha256": "00AFD1162BAD08FC8D4142C52B2AF976352424982A33291E4FEE122E4EA7D64D",
     "formal_candidates_sha256": "FE825E527F93A611CD49AB706D5884CF2464EF81B60962F0EF2D85C328CDF988"
   },
   "evidence": [

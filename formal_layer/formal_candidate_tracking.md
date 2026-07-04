@@ -1,6 +1,6 @@
 # Formal Candidate Tracking Replay
 
-- Generated: 2026-07-04 08:14:37
+- Generated: 2026-07-04 08:19:05
 - As-of date: 2026-07-02
 - Scope: formal signal ledger.
 - No-lookahead rule: signal rows are locked when created; only tracking fields are updated afterward.

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-04 08:15:34",
+  "generated_at": "2026-07-04 08:20:00",
   "status": "attention_disposition_candidate_model_input_approved",
   "recommended_next_step": "wire_attention_disposition_features_into_main_training_pipeline",
   "candidate_input_key": "attention_disposition_events",

@@ -180,32 +180,9 @@ def write_summary(
     retrained: bool,
     checks: list[str],
 ) -> Path:
-    candidates = read_csv_rows(FORMAL_CANDIDATES_PATH)
-    tracking = read_csv_rows(FORMAL_TRACKING_PATH)
     report_text = FORMAL_DAILY_REPORT_PATH.read_text(encoding="utf-8") if FORMAL_DAILY_REPORT_PATH.exists() else ""
-    new_candidate_table = table_from_section(report_text, "今日新進正式候選")
-    continuation_table = table_from_section(report_text, "高分續強但已追蹤")
-    status_counts = Counter(row.get("tracking_status", "") for row in tracking)
     score_after_latest = latest_date(score_after) if score_after else "none"
     score_before_latest = latest_date(score_before) if score_before else "none"
-
-    if not new_candidate_table:
-        new_candidate_table = [
-            "| 股票 | 原始排名 | research_score | 連續被推薦次數 | 類型 |",
-            "| --- | --- | --- | --- | --- |",
-            "|  |  |  |  |  |",
-        ]
-    if not continuation_table:
-        continuation_table = [
-            "| 股票 | 原始排名 | research_score | 連續被推薦次數 | 前次訊號日 | 追蹤狀態 | 目前最高收盤報酬 | 最高收盤報酬日期 |",
-            "| --- | --- | --- | --- | --- | --- | --- | --- |",
-            "|  |  |  |  |  |  |  |  |",
-        ]
-    candidate_note = (
-        "正式候選已產生。"
-        if candidates
-        else "無；已評分但未通過正式候選條件。"
-    )
 
     path = FORMAL_DIR / f"update_run_summary_{as_of_date.replace('-', '')}.md"
     path.write_text(
@@ -224,23 +201,13 @@ def write_summary(
                 f"- Main model retrained: {str(retrained).lower()}",
                 "- Score note: research_score is a ranking score, not a calibrated probability.",
                 "",
-                "## 今日新進正式候選",
-                "",
-                candidate_note,
-                "",
-                *new_candidate_table,
-                "",
-                "## 高分續強但已追蹤",
-                "",
-                *continuation_table,
-                "",
-                "## 正式候選追蹤狀態",
-                "",
-                *markdown_count_table(status_counts),
-                "",
                 "## Checks",
                 "",
                 *markdown_check_table(checks),
+                "",
+                "---",
+                "",
+                report_text,
                 "",
             ]
         ),
