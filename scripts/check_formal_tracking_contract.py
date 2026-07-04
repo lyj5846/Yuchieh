@@ -45,6 +45,7 @@ ALLOWED_TRACKING_STATUS = {
     "success",
     "failure",
     "missing_signal_price",
+    "missing_buy_price",
 }
 
 EXPECTED_0630_MAX_CLOSE_RETURN_DATES = {

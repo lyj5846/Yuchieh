@@ -457,12 +457,15 @@ def track_signal_record(record: dict, stock_by_id: dict[str, list[dict]], as_of_
         return out
     next_index = int(signal_row["_trading_index"]) + 1
     if next_index >= len(stock_rows):
-        out.update({"buy_date": "", "buy_open": "", "observed_trading_days": "0", "days_remaining": "10", "tracking_status": "not_started"})
+        status = "not_started" if as_of_date <= signal_date else "missing_buy_price"
+        out.update({"buy_date": "", "buy_open": "", "observed_trading_days": "0", "days_remaining": "10", "tracking_status": status})
         return out
     buy_row = stock_rows[next_index]
     buy_open = parse_float(buy_row.get("開盤價"))
     if buy_open is None or buy_open <= 0:
-        out.update({"buy_date": buy_row.get("日期", ""), "buy_open": "", "observed_trading_days": "0", "days_remaining": "10", "tracking_status": "not_started"})
+        buy_date = str(buy_row.get("日期", ""))
+        status = "not_started" if buy_date and buy_date > as_of_date else "missing_buy_price"
+        out.update({"buy_date": buy_date, "buy_open": "", "observed_trading_days": "0", "days_remaining": "10", "tracking_status": status})
         return out
     future_rows = [
         row
