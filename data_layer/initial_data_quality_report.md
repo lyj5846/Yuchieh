@@ -1,6 +1,6 @@
 # Initial Data Quality Report
 
-- Generated: 2026-07-04 08:29:37
+- Generated: 2026-07-04 10:00:43
 - Formal candidate default: 目前無可信正式候選
 
 ## Allowed Inputs
@@ -8,10 +8,10 @@
 ### stock_daily_all
 
 - Path: `C:\Users\林裕傑\Documents\Codex\2026-05-29\const-config-2449-b1-stock-sheet\stock_daily_all.csv`
-- Rows: 151530
+- Rows: 151839
 - Columns: 28
 - First columns: `日期, 股票代號, 開盤價, 最高價, 最低價, 收盤價, 成交量(張), 外資買賣超(張), 投信買賣超(張), 自營商買賣超(張), 三大法人合計買賣超(張), 融資買進`
-- Last row preview: `2026-06-30, 8996, 1450.0, 1590.0, 1450.0, 1550.0, 900.881, 147.953`
+- Last row preview: `2026-07-03, 8996, 1405.0, 1420.0, 1315.0, 1380.0, 1321.026, 156.312`
 
 ### market_daily
 

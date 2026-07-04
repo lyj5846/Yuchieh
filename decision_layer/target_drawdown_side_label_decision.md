@@ -1,6 +1,6 @@
 # Target Drawdown Side-Label Decision
 
-- Generated: 2026-07-04 08:29:16
+- Generated: 2026-07-04 10:00:22
 - Data latest date: 2026-07-03
 - Decision status: `side_label_target_contract_ready`
 - Formal output: unchanged by this review.
@@ -13,12 +13,12 @@
 
 ## Holdout 重點
 
-- 原本 +3% 觸及成功率: 71.84%
-- 硬性不能先 -3% 成功率: 39.61%
-- 旁支標籤主成功率: 71.84%
-- 先碰 -3% 但後來 +3% 的成功占成功樣本: 44.86%
-- 平均 10 日最高收盤報酬: 12.24%
-- 平均最大不利低點: -8.10%
+- 原本 +3% 觸及成功率: 71.26%
+- 硬性不能先 -3% 成功率: 39.55%
+- 旁支標籤主成功率: 71.26%
+- 先碰 -3% 但後來 +3% 的成功占成功樣本: 44.50%
+- 平均 10 日最高收盤報酬: 12.06%
+- 平均最大不利低點: -8.11%
 
 ## Split Summary
 
@@ -44,13 +44,13 @@
 
 ### holdout
 
-- Completed rows: 13294
-- Primary +3% success rate: 71.84%
-- Hard -3% rule success rate: 39.61%
-- Clean success rate: 39.61%
-- Painful success rate: 32.23%
-- Painful among successes: 44.86%
-- Any -3% low rate: 71.33%
+- Completed rows: 13603
+- Primary +3% success rate: 71.26%
+- Hard -3% rule success rate: 39.55%
+- Clean success rate: 39.55%
+- Painful success rate: 31.71%
+- Painful among successes: 44.50%
+- Any -3% low rate: 71.58%
 
 ## Decision Reasons
 

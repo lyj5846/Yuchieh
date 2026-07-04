@@ -1,7 +1,7 @@
 # Formal Candidate Tracking Replay
 
-- Generated: 2026-07-04 08:27:43
-- As-of date: 2026-07-02
+- Generated: 2026-07-04 09:59:38
+- As-of date: 2026-07-03
 - Scope: formal signal ledger.
 - No-lookahead rule: signal rows are locked when created; only tracking fields are updated afterward.
 - Buy assumption: next trading day open.
@@ -11,9 +11,9 @@
 
 ## Status Counts
 
-- missing_buy_price: 1
-- success: 10
-- tracking: 7
+- failure: 2
+- success: 11
+- tracking: 5
 
 ## Files
 

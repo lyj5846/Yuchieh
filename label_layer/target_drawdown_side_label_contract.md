@@ -1,6 +1,6 @@
 # Target Drawdown Side-Label Contract
 
-- Generated: 2026-07-04 08:29:15
+- Generated: 2026-07-04 10:00:22
 - Data latest date: 2026-07-03
 - Scope: label-only review; no model training; no formal candidates.
 

@@ -1,11 +1,11 @@
 # Formal Status
 
-- Generated: 2026-07-04 08:27:33
+- Generated: 2026-07-04 09:59:29
 - Status: active
 - Formal source: `scripts/run_main_pipeline.py`
 - Current strategy: retained benchmark
 - Raw data latest date: stock=2026-07-03; market=2026-07-03
-- Formal report as-of date: 2026-07-02
+- Formal report as-of date: 2026-07-03
 - Result: 目前無可信正式候選
 - Reason: main model passed validation, but latest date did not pass the selected score gate
 - Rule: training outputs cannot update formal candidates directly.

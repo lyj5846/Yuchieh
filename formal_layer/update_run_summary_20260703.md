@@ -1,3 +1,26 @@
+# Update Run Summary
+
+- Generated: 2026-07-04 10:00:43
+- Requested as-of date: 2026-07-03
+- Raw stock latest date: 2026-07-03
+- Raw market latest date: 2026-07-03
+- Stock rows on as-of date: 252
+- Market rows on as-of date: 1
+- Score latest date before sync: 2026-07-03
+- Score latest date after sync: 2026-07-03
+- Main model retrained: false
+- Score note: research_score is a ranking score, not a calibrated probability.
+
+## Checks
+
+| 檢查項目 | 結果 |
+| --- | --- |
+| run_main_pipeline | passed |
+| run_main_model_failure_diagnosis | passed |
+| run_local_quality_gate | passed |
+
+---
+
 # Formal Daily Report
 
 - Generated: 2026-07-04 09:59:38
@@ -41,3 +64,4 @@
 | 2026-06-30 | 6515 穎崴 | 2 | 2026-07-01 | 3 | 18.63% | 2026-07-03 | 2026-07-01 |  | success |
 | 2026-06-30 | 2404 漢唐 | 1 | 2026-07-01 | 3 | 3.36% | 2026-07-02 | 2026-07-02 | 2026-07-01 | success |
 | 2026-06-30 | 6669 緯穎 | 1 | 2026-07-01 | 3 | 11.08% | 2026-07-03 | 2026-07-01 |  | success |
+

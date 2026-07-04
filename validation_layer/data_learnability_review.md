@@ -1,6 +1,6 @@
 # Data Learnability Review
 
-- Generated: 2026-07-04 08:29:08
+- Generated: 2026-07-04 10:00:15
 - Data latest date: 2026-07-03
 - Scope: data/label learnability only; no model training; no stock candidates.
 - Formal output: unchanged by this review.
@@ -14,26 +14,26 @@
 
 ## Holdout Snapshot
 
-- Primary +3% success rate: 71.84%
-- Hard risk-adjusted comparison success rate: 39.61%
-- Success with -3% drawdown side risk: 32.23%
-- Drawdown side risk among successes: 44.86%
-- Average max adverse return: -8.10%
-- Average realized rule return: 5.60%
+- Primary +3% success rate: 71.26%
+- Hard risk-adjusted comparison success rate: 39.55%
+- Success with -3% drawdown side risk: 31.71%
+- Drawdown side risk among successes: 44.50%
+- Average max adverse return: -8.11%
+- Average realized rule return: 5.42%
 
 ## Learnable Signal Counts
 
-- Stable success features: 41
-- Stable risk-filter features: 67
-- Stable return-ranking features: 51
+- Stable success features: 42
+- Stable risk-filter features: 71
+- Stable return-ranking features: 56
 
 ## Top Feature Clues
 
 These are distinguishability clues, not buy reasons; a stable negative direction can still be useful for filtering risk.
 
-- Success target clues: market_margin_5, theme_軟體／電信／雲平台, market_breadth, 融資餘額, close_vs_ma_10, close_ret_5, industry_volume_rank_20, 加權指數收盤_ret_3
-- Risk-filter clues: theme_軟體／電信／雲平台, market_breadth, 融資餘額, close_vs_ma_10, close_ret_5, industry_volume_rank_20, 加權指數收盤_ret_3, volatility_20
-- Return-ranking clues: market_margin_5, theme_軟體／電信／雲平台, market_breadth, 融資餘額, 加權指數收盤_ret_3, volatility_20, 融券餘額, 電子指數收盤_ret_3
+- Success target clues: market_margin_5, theme_軟體／電信／雲平台, market_breadth, 融資餘額, 加權指數收盤_ret_3, 融券餘額, volatility_20, close_ret_5
+- Risk-filter clues: theme_軟體／電信／雲平台, market_breadth, 融資餘額, 加權指數收盤_ret_3, 融券餘額, volatility_20, close_ret_5, industry_volume_rank_20
+- Return-ranking clues: market_margin_5, theme_軟體／電信／雲平台, market_breadth, 融資餘額, 加權指數收盤_ret_3, 融券餘額, volatility_20, volatility_10
 
 ## Boundary
 
