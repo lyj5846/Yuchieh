@@ -116,6 +116,18 @@ def score_dates() -> Counter[str]:
     return dates
 
 
+def score_sync_reason(as_of_date: str, raw_info: dict, score_counts: Counter[str], force_train: bool) -> str:
+    if force_train:
+        return "force_train_requested"
+    score_rows = score_counts.get(as_of_date, 0)
+    if score_rows == 0:
+        return "score_date_missing"
+    raw_rows = int(raw_info["stock_as_of_rows"])
+    if score_rows < raw_rows:
+        return f"score_rows_incomplete:{score_rows}<{raw_rows}"
+    return ""
+
+
 def run_command(command: list[str]) -> None:
     print("\n==> " + " ".join(command))
     result = subprocess.run(command, cwd=PROJECT_ROOT)
@@ -197,7 +209,9 @@ def write_summary(
                 f"- Stock rows on as-of date: {raw_info['stock_as_of_rows']}",
                 f"- Market rows on as-of date: {raw_info['market_as_of_rows']}",
                 f"- Score latest date before sync: {score_before_latest}",
+                f"- Score rows on as-of date before sync: {score_before.get(as_of_date, 0)}",
                 f"- Score latest date after sync: {score_after_latest}",
+                f"- Score rows on as-of date after sync: {score_after.get(as_of_date, 0)}",
                 f"- Main model retrained: {str(retrained).lower()}",
                 "- Score note: research_score is a ranking score, not a calibrated probability.",
                 "",
@@ -249,8 +263,10 @@ def main() -> None:
 
     before_scores = score_dates()
     retrained = False
-    if args.force_train or as_of_date not in before_scores:
+    reason = score_sync_reason(as_of_date, raw_info, before_scores, args.force_train)
+    if reason:
         retrained = True
+        print(f"INFO: retraining main model because {reason}")
         run_command(
             [
                 python,
@@ -265,6 +281,11 @@ def main() -> None:
         fail(
             f"model scores still do not contain {as_of_date} after sync; "
             "formal output was not generated."
+        )
+    if after_scores[as_of_date] < int(raw_info["stock_as_of_rows"]):
+        fail(
+            f"model score rows for {as_of_date} are incomplete after sync: "
+            f"{after_scores[as_of_date]} < {raw_info['stock_as_of_rows']}; formal output was not generated."
         )
 
     run_command([python, "scripts/run_main_pipeline.py", "--as-of-date", as_of_date])

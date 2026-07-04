@@ -1,6 +1,6 @@
 # Formal Status
 
-- Generated: 2026-07-04 09:59:29
+- Generated: 2026-07-04 10:07:42
 - Status: active
 - Formal source: `scripts/run_main_pipeline.py`
 - Current strategy: retained benchmark
