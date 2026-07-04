@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-07-04 10:25:34",
+  "status": "keep_tracking_only",
+  "recommended_next_step": "keep_formal_tracking_only",
+  "reason": "Repeat high-score events do not yet justify opening a new formal buy point; keep them as tracking evidence.",
+  "minimum_all_holdout_events": 50,
+  "minimum_reset_holdout_events": 20,
+  "all_repeat_holdout_completed_events": 471,
+  "reset_holdout_completed_events": 378,
+  "reset_holdout_success_lift": 0.051204102712355426,
+  "reset_holdout_return_lift": 0.032308861214267875
+}
