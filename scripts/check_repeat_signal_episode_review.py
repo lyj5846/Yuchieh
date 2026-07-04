@@ -10,6 +10,7 @@ REVIEW_MD_PATH = PROJECT_ROOT / "validation_layer" / "repeat_signal_episode_revi
 SUMMARY_PATH = PROJECT_ROOT / "validation_layer" / "repeat_signal_episode_summary.csv"
 EVENTS_PATH = PROJECT_ROOT / "validation_layer" / "repeat_signal_episode_events.csv"
 DECISION_JSON_PATH = PROJECT_ROOT / "decision_layer" / "repeat_signal_episode_decision.json"
+MAIN_PIPELINE_PATH = PROJECT_ROOT / "scripts" / "run_main_pipeline.py"
 
 ALLOWED_STATUS = {
     "keep_tracking_only",
@@ -67,6 +68,14 @@ def main() -> None:
         fail("unexpected repeat signal episode next step")
     if not decision.get("reason"):
         fail("decision must include reason")
+    pipeline_text = MAIN_PIPELINE_PATH.read_text(encoding="utf-8")
+    for phrase in [
+        "REPEAT_SIGNAL_EPISODE_DECISION_PATH",
+        "block_repeat_formal_candidates",
+        "block_repeats=block_repeat_formal_candidates()",
+    ]:
+        if phrase not in pipeline_text:
+            fail(f"formal pipeline is not wired to repeat signal decision: {phrase}")
 
     summary_rows = read_rows(SUMMARY_PATH)
     required_summary = {

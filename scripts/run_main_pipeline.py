@@ -25,6 +25,7 @@ FORMAL_DAILY_REPORT_MD_PATH = PROJECT_ROOT / "formal_layer" / "formal_daily_repo
 MAIN_MODEL_DECISION_PATH = PROJECT_ROOT / "decision_layer" / "main_model_decision.json"
 MAIN_MODEL_SCORES_PATH = PROJECT_ROOT / "model_layer" / "main_model_scores.csv"
 MAIN_MODEL_VALIDATION_SUMMARY_PATH = PROJECT_ROOT / "validation_layer" / "main_model_validation_summary.csv"
+REPEAT_SIGNAL_EPISODE_DECISION_PATH = PROJECT_ROOT / "decision_layer" / "repeat_signal_episode_decision.json"
 
 TRACKING_COLUMNS = [
     "as_of_date",
@@ -305,6 +306,18 @@ def read_main_model_decision() -> dict:
         return json.load(f)
 
 
+def read_repeat_signal_episode_decision() -> dict:
+    if not REPEAT_SIGNAL_EPISODE_DECISION_PATH.exists():
+        return {}
+    with REPEAT_SIGNAL_EPISODE_DECISION_PATH.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def block_repeat_formal_candidates() -> bool:
+    decision = read_repeat_signal_episode_decision()
+    return decision.get("status") == "keep_tracking_only"
+
+
 def approved_main_model(decision: dict) -> bool:
     return bool(
         decision
@@ -325,7 +338,13 @@ def latest_model_candidates(decision: dict, latest_date: str, config: dict) -> l
             f"{latest_date}. Run scripts/run_main_model_training_pipeline.py before formal output."
         )
     gate = parse_float(decision.get("selected_gate"))
-    replay_candidates = select_replay_candidates(score_rows, stock_by_id, latest_date, gate)
+    replay_candidates = select_replay_candidates(
+        score_rows,
+        stock_by_id,
+        latest_date,
+        gate,
+        block_repeats=block_repeat_formal_candidates(),
+    )
     return [row for row in replay_candidates if str(row.get("日期", "")) == latest_date]
 
 
@@ -409,7 +428,13 @@ def candidate_to_ledger_row(candidate: dict, candidate_type: str, generated: str
     }
 
 
-def select_replay_candidates(score_rows: list[dict], stock_by_id: dict[str, list[dict]], latest_date: str, gate: float | None) -> list[dict]:
+def select_replay_candidates(
+    score_rows: list[dict],
+    stock_by_id: dict[str, list[dict]],
+    latest_date: str,
+    gate: float | None,
+    block_repeats: bool = False,
+) -> list[dict]:
     score_rows = [row for row in score_rows if str(row.get("日期", "")) <= latest_date]
     signal_dates = sorted({str(row["日期"]) for row in score_rows})
     replay_dates = set(signal_dates[-10:])
@@ -433,8 +458,9 @@ def select_replay_candidates(score_rows: list[dict], stock_by_id: dict[str, list
             if not price_row:
                 continue
             stock_index = int(price_row["_trading_index"])
-            if stock_id in last_pick_index and stock_index - last_pick_index[stock_id] <= 10:
-                continue
+            if stock_id in last_pick_index:
+                if block_repeats or stock_index - last_pick_index[stock_id] <= 10:
+                    continue
             last_pick_index[stock_id] = stock_index
             selected_today += 1
             if signal_date in replay_dates:
@@ -567,7 +593,13 @@ def merge_signal_ledger(
     additions: list[dict] = []
 
     if not ledger_rows:
-        for candidate in select_replay_candidates(score_rows, stock_by_id, latest_date, gate):
+        for candidate in select_replay_candidates(
+            score_rows,
+            stock_by_id,
+            latest_date,
+            gate,
+            block_repeats=block_repeat_formal_candidates(),
+        ):
             candidate_type = "new_formal" if candidate.get("日期") == latest_date else "replay_seed"
             row = candidate_to_ledger_row(candidate, candidate_type, generated)
             if signal_key(row) not in existing:
@@ -682,7 +714,13 @@ def update_ledger_consecutive_counts(ledger_rows: list[dict], as_of_date: str, t
         row["consecutive_recommendation_count"] = str(consecutive_recommendation_count(stock_id, signal_date, as_of_date, top_sets))
 
 
-def find_recent_ledger_row(raw_row: dict, ledger_rows: list[dict], stock_by_id: dict[str, list[dict]], latest_date: str) -> dict | None:
+def find_recent_ledger_row(
+    raw_row: dict,
+    ledger_rows: list[dict],
+    stock_by_id: dict[str, list[dict]],
+    latest_date: str,
+    max_distance: int | None = 10,
+) -> dict | None:
     stock_id = str(raw_row.get("股票代號", ""))
     stock_rows = stock_by_id.get(stock_id, [])
     latest_price_row = next((row for row in stock_rows if row.get("日期") == latest_date), None)
@@ -697,7 +735,7 @@ def find_recent_ledger_row(raw_row: dict, ledger_rows: list[dict], stock_by_id: 
         if not signal_price_row:
             continue
         distance = latest_index - int(signal_price_row["_trading_index"])
-        if 0 < distance <= 10:
+        if distance > 0 and (max_distance is None or distance <= max_distance):
             matches.append((distance, row))
     if not matches:
         return None
@@ -709,12 +747,13 @@ def continuation_rows(config: dict, latest_date: str, ledger_rows: list[dict], t
     stock_by_id = read_stock_rows(Path(config["allowed_inputs"]["stock_daily_all"]))
     today_keys = {str(row.get("股票代號", "")) for row in today_candidates}
     top_sets = raw_top_stock_sets(limit=10)
+    max_distance = None if block_repeat_formal_candidates() else 10
     rows: list[dict] = []
     for raw in latest_raw_top_rows(latest_date, limit=10):
         stock_id = str(raw.get("股票代號", ""))
         if stock_id in today_keys:
             continue
-        prior = find_recent_ledger_row(raw, ledger_rows, stock_by_id, latest_date)
+        prior = find_recent_ledger_row(raw, ledger_rows, stock_by_id, latest_date, max_distance=max_distance)
         if not prior:
             continue
         rows.append(

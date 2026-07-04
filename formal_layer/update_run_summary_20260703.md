@@ -1,6 +1,6 @@
 # Update Run Summary
 
-- Generated: 2026-07-04 10:08:54
+- Generated: 2026-07-04 19:45:37
 - Requested as-of date: 2026-07-03
 - Raw stock latest date: 2026-07-03
 - Raw market latest date: 2026-07-03
@@ -25,7 +25,7 @@
 
 # Formal Daily Report
 
-- Generated: 2026-07-04 10:07:51
+- Generated: 2026-07-04 19:44:10
 - Report date: 2026-07-03
 - research_score 是排序分數，不是機率。
 - strategy_backtest_hit_rate 是策略歷史回測成功率，不是個股成功率。
