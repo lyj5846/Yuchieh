@@ -137,7 +137,7 @@ def read_csv_rows(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(f))
 
 
-def table_rows_from_section(text: str, heading: str) -> list[str]:
+def table_from_section(text: str, heading: str) -> list[str]:
     marker = f"## {heading}"
     if marker not in text:
         return []
@@ -149,14 +149,27 @@ def table_rows_from_section(text: str, heading: str) -> list[str]:
         stripped = line.strip()
         if not stripped.startswith("|"):
             continue
-        if "---" in stripped:
-            continue
-        if stripped.startswith("| 股票 |") or stripped.startswith("| 訊號日 |"):
-            continue
         if stripped.replace("|", "").strip() == "":
             continue
         rows.append(stripped)
     return rows
+
+
+def markdown_count_table(counts: Counter[str]) -> list[str]:
+    lines = ["| 狀態 | 筆數 |", "| --- | ---: |"]
+    if not counts:
+        lines.append("| 無 | 0 |")
+        return lines
+    for status, count in sorted(counts.items()):
+        lines.append(f"| {status or 'blank'} | {count} |")
+    return lines
+
+
+def markdown_check_table(checks: list[str]) -> list[str]:
+    lines = ["| 檢查項目 | 結果 |", "| --- | --- |"]
+    for check in checks:
+        lines.append(f"| {check} | passed |")
+    return lines
 
 
 def write_summary(
@@ -170,23 +183,29 @@ def write_summary(
     candidates = read_csv_rows(FORMAL_CANDIDATES_PATH)
     tracking = read_csv_rows(FORMAL_TRACKING_PATH)
     report_text = FORMAL_DAILY_REPORT_PATH.read_text(encoding="utf-8") if FORMAL_DAILY_REPORT_PATH.exists() else ""
-    continuation_rows = table_rows_from_section(report_text, "高分續強但已追蹤")
+    new_candidate_table = table_from_section(report_text, "今日新進正式候選")
+    continuation_table = table_from_section(report_text, "高分續強但已追蹤")
     status_counts = Counter(row.get("tracking_status", "") for row in tracking)
     score_after_latest = latest_date(score_after) if score_after else "none"
     score_before_latest = latest_date(score_before) if score_before else "none"
 
-    candidate_lines = []
-    for row in candidates:
-        stock = f"{row.get('stock_id', '')} {row.get('stock_name', '')}".strip()
-        candidate_lines.append(
-            f"- {stock}: rank_score={row.get('research_score', '')}, "
-            f"連續被推薦次數={row.get('consecutive_recommendation_count', '')}"
-        )
-    if not candidate_lines:
-        candidate_lines.append("- 無；已評分但未通過正式候選條件。")
-
-    continuation_lines = continuation_rows if continuation_rows else ["- 無"]
-    tracking_lines = [f"- {status or 'blank'}: {count}" for status, count in sorted(status_counts.items())] or ["- 無"]
+    if not new_candidate_table:
+        new_candidate_table = [
+            "| 股票 | 原始排名 | research_score | 連續被推薦次數 | 類型 |",
+            "| --- | --- | --- | --- | --- |",
+            "|  |  |  |  |  |",
+        ]
+    if not continuation_table:
+        continuation_table = [
+            "| 股票 | 原始排名 | research_score | 連續被推薦次數 | 前次訊號日 | 追蹤狀態 | 目前最高收盤報酬 | 最高收盤報酬日期 |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- |",
+            "|  |  |  |  |  |  |  |  |",
+        ]
+    candidate_note = (
+        "正式候選已產生。"
+        if candidates
+        else "無；已評分但未通過正式候選條件。"
+    )
 
     path = FORMAL_DIR / f"update_run_summary_{as_of_date.replace('-', '')}.md"
     path.write_text(
@@ -207,19 +226,21 @@ def write_summary(
                 "",
                 "## 今日新進正式候選",
                 "",
-                *candidate_lines,
+                candidate_note,
+                "",
+                *new_candidate_table,
                 "",
                 "## 高分續強但已追蹤",
                 "",
-                *continuation_lines,
+                *continuation_table,
                 "",
                 "## 正式候選追蹤狀態",
                 "",
-                *tracking_lines,
+                *markdown_count_table(status_counts),
                 "",
                 "## Checks",
                 "",
-                *[f"- {check}: passed" for check in checks],
+                *markdown_check_table(checks),
                 "",
             ]
         ),
