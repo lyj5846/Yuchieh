@@ -11,8 +11,8 @@
 
 - Status: `coverage_not_training_ready`
 - Recommended next step: `build_historical_event_risk_backfill_collector`
-- Usable rows by market latest date: 82
-- Event date range: 2026-06-16 to 2026-07-03
+- Usable rows by market latest date: 90
+- Event date range: 2026-06-16 to 2026-07-06
 
 ## Split Coverage
 
@@ -20,7 +20,7 @@
 |---|---:|---:|---:|---:|---:|
 | train | 485 | 0 | 0 | 0.00% | 0 |
 | development | 55 | 0 | 0 | 0.00% | 0 |
-| holdout | 64 | 82 | 13 | 20.31% | 67 |
+| holdout | 65 | 90 | 14 | 21.54% | 74 |
 
 ## Event Type Coverage
 
@@ -28,7 +28,7 @@
 |---|---:|---:|---|---|
 | attention | 11 | 9 | 2026-07-01 | 2026-07-02 |
 | disposition | 20 | 20 | 2026-06-16 | 2026-07-01 |
-| ex_dividend | 26 | 26 | 2026-06-23 | 2026-07-03 |
+| ex_dividend | 34 | 34 | 2026-06-23 | 2026-07-06 |
 | investor_meeting | 3 | 3 | 2026-07-02 | 2026-07-02 |
 | material_info | 22 | 18 | 2026-07-01 | 2026-07-02 |
 

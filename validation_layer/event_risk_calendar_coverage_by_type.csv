@@ -1,6 +1,6 @@
 ﻿event_type,event_rows,event_stock_count,first_signal_usable_date,last_signal_usable_date
 attention,11,9,2026-07-01,2026-07-02
 disposition,20,20,2026-06-16,2026-07-01
-ex_dividend,26,26,2026-06-23,2026-07-03
+ex_dividend,34,34,2026-06-23,2026-07-06
 investor_meeting,3,3,2026-07-02,2026-07-02
 material_info,22,18,2026-07-01,2026-07-02

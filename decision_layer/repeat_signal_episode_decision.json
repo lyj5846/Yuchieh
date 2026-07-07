@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-07-04 19:45:17",
-  "status": "keep_tracking_only",
-  "recommended_next_step": "keep_formal_tracking_only",
-  "reason": "Repeat high-score events do not yet justify opening a new formal buy point; keep them as tracking evidence.",
+  "generated_at": "2026-07-07 08:50:43",
+  "status": "allow_reentry_after_reset",
+  "recommended_next_step": "plan_reentry_label_contract",
+  "reason": "Returned-after-leaving-Top10 repeats passed the holdout lift, return, and concentration checks.",
   "minimum_all_holdout_events": 50,
   "minimum_reset_holdout_events": 20,
-  "all_repeat_holdout_completed_events": 471,
-  "reset_holdout_completed_events": 378,
-  "reset_holdout_success_lift": 0.051204102712355426,
-  "reset_holdout_return_lift": 0.032308861214267875
+  "all_repeat_holdout_completed_events": 545,
+  "reset_holdout_completed_events": 286,
+  "reset_holdout_success_lift": 0.1477234032014909,
+  "reset_holdout_return_lift": 0.06492800433744024
 }

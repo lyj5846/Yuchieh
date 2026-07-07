@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-04 19:45:24",
+  "generated_at": "2026-07-07 08:51:21",
   "status": "attention_disposition_feature_generation_check_passed",
   "recommended_next_step": "prepare_attention_disposition_model_input_approval_review",
   "allowed_scope": "attention_disposition_only",
@@ -13,7 +13,7 @@
     "has_attention_disposition_history_20d"
   ],
   "eligible_event_rows": 3781,
-  "signal_rows_checked": 151839,
+  "signal_rows_checked": 152091,
   "future_event_join_violations": 0,
   "post_close_rows_excluded": 0,
   "unknown_close_rows_excluded": 0,

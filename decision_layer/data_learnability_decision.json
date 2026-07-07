@@ -1,38 +1,38 @@
 {
-  "generated_at": "2026-07-04 19:44:53",
+  "generated_at": "2026-07-07 08:50:17",
   "status": "learnable_signal_present",
   "recommended_next_step": "feature_screen_then_retrain",
   "reason": "三份核心資料加已批准候選特徵內，有跨 train/development/holdout 方向穩定的 +3% 成功、回撤風險旁支與報酬排序訊號。",
-  "stable_success_feature_count": 42,
-  "stable_risk_filter_feature_count": 71,
-  "stable_return_feature_count": 56,
-  "holdout_primary_success_rate": 0.7126369183268396,
-  "holdout_hard_risk_adjusted_success_rate": 0.39550099242814085,
-  "holdout_drawdown_side_risk_rate": 0.3171359258986988,
-  "holdout_drawdown_side_risk_among_success": 0.44501753662059007,
+  "stable_success_feature_count": 70,
+  "stable_risk_filter_feature_count": 102,
+  "stable_return_feature_count": 85,
+  "holdout_primary_success_rate": 0.7063875857091303,
+  "holdout_hard_risk_adjusted_success_rate": 0.38939011187297007,
+  "holdout_drawdown_side_risk_rate": 0.3169974738361602,
+  "holdout_drawdown_side_risk_among_success": 0.44875855726984776,
   "top_success_features": [
     "market_margin_5",
     "theme_軟體／電信／雲平台",
     "market_breadth",
+    "theme_avg_ret_5",
     "融資餘額",
     "加權指數收盤_ret_3",
-    "融券餘額",
-    "volatility_20",
+    "theme_avg_close_vs_ma_10",
     "close_ret_5",
-    "industry_volume_rank_20",
-    "close_vs_ma_10"
+    "融券餘額",
+    "theme_positive_share_10"
   ],
   "top_risk_filter_features": [
     "theme_軟體／電信／雲平台",
     "market_breadth",
+    "theme_avg_ret_5",
     "融資餘額",
     "加權指數收盤_ret_3",
-    "融券餘額",
-    "volatility_20",
+    "theme_avg_close_vs_ma_10",
     "close_ret_5",
-    "industry_volume_rank_20",
-    "close_vs_ma_10",
-    "industry_volume_rank_10"
+    "融券餘額",
+    "theme_positive_share_10",
+    "close_vs_ma_10"
   ],
   "top_return_features": [
     "market_margin_5",
@@ -42,8 +42,8 @@
     "加權指數收盤_ret_3",
     "融券餘額",
     "volatility_20",
-    "volatility_10",
     "電子指數收盤_ret_3",
+    "volatility_10",
     "same_day_return_rank_20"
   ]
 }

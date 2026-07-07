@@ -1,11 +1,11 @@
 # Main Model Training Spec
 
-- Generated: 2026-07-04 10:06:50
+- Generated: 2026-07-07 08:49:08
 - Confirmed plan: `drawdown_side_label_main_model_training_plan`
 - Core data sources: three approved CSV inputs.
 - Candidate feature input: approved attention/disposition events only.
 - Model: one hidden-layer numpy MLP with four outputs.
-- Feature screen: selected 48 of 115 generated features.
+- Feature screen: selected 48 of 165 generated features.
 - Feature screen source: `validation_layer/data_learnability_feature_signal.csv`.
 - Feature screen uses train/development correlation stability only; holdout columns are audit-only.
 - Feature screen min absolute train/development correlation: 0.01.
@@ -17,6 +17,7 @@
 - risk_adjusted_10d_success is retained only as a hard-risk comparison field.
 - Same-day advantage soft target: pure same-day return percentile.
 - Uses same-day relative return-ranking features against all stocks, same industry, and market indices.
+- Uses theme-rotation features inside the single main model feature contract.
 - Uses approved attention/disposition features as candidate risk/context inputs.
 - same_day_advantage loss weight: 3.0.
 - Strategy tuning: selected on development with monthly stability and a balanced success/return objective.
@@ -25,11 +26,11 @@
 - Development monthly stability requires most active months to have both success lift and return lift above zero.
 - Feature lookback: 20 trading days.
 - Episode gap: 10 trading days.
-- Selected weights: 2.2, 0.6, 0.2, 0.0
-- Selected gate: 1.9442562103271483
+- Selected weights: 2.2, 0.8, 0.1, 0.2
+- Selected gate: 2.1172019958496096
 - Selected development positive months: 3/3
-- Selected development score-band success delta: 0.058337
-- Selected development score-band advantage delta: 0.118989
-- Selected development score-band return delta: 0.018723
-- Selected balanced objective score: 0.173979
+- Selected development score-band success delta: 0.181271
+- Selected development score-band advantage delta: 0.240774
+- Selected development score-band return delta: 0.059340
+- Selected balanced objective score: 0.278673
 - Raw outputs are research ranking scores, not calibrated success rates.

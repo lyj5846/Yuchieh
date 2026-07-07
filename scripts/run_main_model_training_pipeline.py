@@ -282,6 +282,95 @@ def add_attention_disposition_features(
     return out, ATTENTION_DISPOSITION_FEATURES.copy()
 
 
+def add_theme_rotation_features(frame: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+    out = frame.copy()
+    theme_parts: list[pd.DataFrame] = []
+    feature_cols: list[str] = []
+
+    for window in RETURN_RANK_WINDOWS:
+        return_col = f"close_ret_{window}"
+        theme = (
+            out.groupby(["日期", "主分類"])
+            .agg(
+                theme_stock_count=("股票代號", "nunique"),
+                **{
+                    f"theme_avg_ret_{window}": (return_col, "mean"),
+                    f"theme_median_ret_{window}": (return_col, "median"),
+                    f"theme_positive_share_{window}": (return_col, lambda s: float((s > 0).mean())),
+                },
+            )
+            .reset_index()
+        )
+        theme[f"theme_strength_rank_{window}"] = theme.groupby("日期")[f"theme_avg_ret_{window}"].rank(pct=True)
+        theme[f"theme_breadth_rank_{window}"] = theme.groupby("日期")[f"theme_positive_share_{window}"].rank(pct=True)
+        market_col = f"加權指數收盤_ret_{window}"
+        if market_col in out.columns:
+            market_daily = out[["日期", market_col]].drop_duplicates("日期")
+            theme = theme.merge(market_daily, on="日期", how="left")
+            theme[f"theme_vs_weighted_{window}"] = theme[f"theme_avg_ret_{window}"] - theme[market_col]
+            theme = theme.drop(columns=[market_col])
+        theme_parts.append(theme)
+        feature_cols.extend(
+            [
+                f"theme_avg_ret_{window}",
+                f"theme_median_ret_{window}",
+                f"theme_positive_share_{window}",
+                f"theme_strength_rank_{window}",
+                f"theme_breadth_rank_{window}",
+                f"theme_vs_weighted_{window}",
+            ]
+        )
+
+    theme_daily = theme_parts[0]
+    for part in theme_parts[1:]:
+        keep = [c for c in part.columns if c != "theme_stock_count"]
+        theme_daily = theme_daily.merge(part[keep], on=["日期", "主分類"], how="outer")
+
+    for window in MA_RANK_WINDOWS:
+        volume_col = f"volume_vs_ma_{window}"
+        ma_col = f"close_vs_ma_{window}"
+        part = (
+            out.groupby(["日期", "主分類"])
+            .agg(
+                **{
+                    f"theme_avg_volume_vs_ma_{window}": (volume_col, "mean"),
+                    f"theme_avg_close_vs_ma_{window}": (ma_col, "mean"),
+                }
+            )
+            .reset_index()
+        )
+        part[f"theme_volume_rank_{window}"] = part.groupby("日期")[f"theme_avg_volume_vs_ma_{window}"].rank(pct=True)
+        part[f"theme_ma_position_rank_{window}"] = part.groupby("日期")[f"theme_avg_close_vs_ma_{window}"].rank(pct=True)
+        theme_daily = theme_daily.merge(part, on=["日期", "主分類"], how="left")
+        feature_cols.extend(
+            [
+                f"theme_avg_volume_vs_ma_{window}",
+                f"theme_avg_close_vs_ma_{window}",
+                f"theme_volume_rank_{window}",
+                f"theme_ma_position_rank_{window}",
+            ]
+        )
+
+    theme_daily["theme_acceleration_5_20"] = theme_daily["theme_avg_ret_5"] - theme_daily["theme_avg_ret_20"]
+    theme_daily["theme_acceleration_rank_5_20"] = theme_daily.groupby("日期")["theme_acceleration_5_20"].rank(pct=True)
+    theme_daily["theme_rotation_candidate_rank"] = (
+        0.5 * theme_daily["theme_strength_rank_5"].fillna(0.5)
+        + 0.3 * theme_daily["theme_acceleration_rank_5_20"].fillna(0.5)
+        + 0.2 * theme_daily["theme_breadth_rank_5"].fillna(0.5)
+    )
+    feature_cols.extend(["theme_acceleration_5_20", "theme_acceleration_rank_5_20", "theme_rotation_candidate_rank"])
+
+    out = out.merge(theme_daily, on=["日期", "主分類"], how="left")
+    for window in RETURN_RANK_WINDOWS:
+        col = f"stock_vs_theme_ret_{window}"
+        out[col] = out[f"close_ret_{window}"] - out[f"theme_avg_ret_{window}"]
+        feature_cols.append(col)
+
+    feature_cols = [c for c in dict.fromkeys(feature_cols) if c in out.columns]
+    out[feature_cols] = out[feature_cols].replace([np.inf, -np.inf], np.nan).fillna(0.0)
+    return out, feature_cols
+
+
 def first_hit_day(values: pd.DataFrame, threshold: float, direction: str) -> pd.Series:
     if direction == "ge":
         hits = values.ge(threshold)
@@ -441,6 +530,7 @@ def add_features(
         return_ranking_features.extend([volume_rank, ma_rank])
     if relative_feature_data:
         out = pd.concat([out, pd.DataFrame(relative_feature_data, index=out.index)], axis=1)
+    out, theme_rotation_features = add_theme_rotation_features(out)
     out, attention_disposition_features = add_attention_disposition_features(
         out,
         attention_disposition_events,
@@ -493,6 +583,7 @@ def add_features(
     rolling_features = [c for c in out.columns if c.endswith("_sum_5") or c.endswith("_sum_10")]
     numeric_features.extend(rolling_features)
     numeric_features.extend(return_ranking_features)
+    numeric_features.extend(theme_rotation_features)
     numeric_features.extend(attention_disposition_features)
     numeric_features = [c for c in numeric_features if c in out.columns]
 
@@ -1247,6 +1338,7 @@ def main() -> None:
                 "- risk_adjusted_10d_success is retained only as a hard-risk comparison field.",
                 "- Same-day advantage soft target: pure same-day return percentile.",
                 "- Uses same-day relative return-ranking features against all stocks, same industry, and market indices.",
+                "- Uses theme-rotation features inside the single main model feature contract.",
                 "- Uses approved attention/disposition features as candidate risk/context inputs.",
                 f"- same_day_advantage loss weight: {SAME_DAY_ADVANTAGE_LOSS_WEIGHT}.",
                 "- Strategy tuning: selected on development with monthly stability and a balanced success/return objective.",

@@ -1,8 +1,9 @@
 # Main Pipeline Decision
 
-- Generated: 2026-07-04 19:44:10
-- Raw data latest date: stock=2026-07-03; market=2026-07-03
-- Formal report as-of date: 2026-07-03
+- Generated: 2026-07-07 08:49:27
+- Raw data latest date: stock=2026-07-06; market=2026-07-06
+- Formal report as-of date: 2026-07-06
+- Ledger rebuild from: not requested
 - Decision: promote validated single main model.
-- Formal result: 目前無可信正式候選
+- Formal result: formal candidates written
 - Next allowed work: track formal candidates; retrain only through the single main model pipeline.

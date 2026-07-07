@@ -1,8 +1,8 @@
 # Repeat Signal Episode Review
 
-- Generated: 2026-07-04 19:45:17
-- Data latest date: 2026-07-03
-- Selected score gate: 1.9442562103271483
+- Generated: 2026-07-07 08:50:43
+- Data latest date: 2026-07-06
+- Selected score gate: 2.1172019958496096
 - Review type: label-only repeat signal episode review.
 - Formal output: unchanged by this review.
 - This does not choose stocks.
@@ -12,19 +12,19 @@
 
 ## Decision
 
-- Status: `keep_tracking_only`
-- Recommended next step: `keep_formal_tracking_only`
-- Reason: Repeat high-score events do not yet justify opening a new formal buy point; keep them as tracking evidence.
+- Status: `allow_reentry_after_reset`
+- Recommended next step: `plan_reentry_label_contract`
+- Reason: Returned-after-leaving-Top10 repeats passed the holdout lift, return, and concentration checks.
 
 ## Holdout Scenario Summary
 
 | 情境 | 已結案筆數 | 成功率 | 成功率差 | 平均最高收盤報酬 | 報酬差 | 贏同日市場率 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| all_repeat_events | 471 | 77.07% | 6.15% | 16.18% | 4.22% | 51.17% |
-| within_10_not_success | 43 | 81.40% | 5.96% | 17.60% | 4.15% | 48.84% |
-| within_10_after_success | 104 | 82.69% | 16.12% | 20.81% | 9.85% | 70.19% |
-| after_10_reappeared | 324 | 74.69% | 2.97% | 14.51% | 2.43% | 45.37% |
-| returned_after_leaving_top10 | 378 | 76.19% | 5.12% | 15.17% | 3.23% | 47.62% |
+| all_repeat_events | 545 | 79.08% | 8.54% | 15.94% | 4.10% | 51.74% |
+| within_10_not_success | 184 | 73.91% | -0.78% | 16.26% | 3.09% | 46.20% |
+| within_10_after_success | 317 | 83.91% | 15.38% | 15.74% | 4.61% | 54.57% |
+| after_10_reappeared | 44 | 65.91% | -1.80% | 15.97% | 4.62% | 54.55% |
+| returned_after_leaving_top10 | 286 | 83.22% | 14.77% | 17.64% | 6.49% | 61.54% |
 
 ## Interpretation
 

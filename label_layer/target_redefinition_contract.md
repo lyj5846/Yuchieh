@@ -1,7 +1,7 @@
 # Target Redefinition Contract
 
-- Generated: 2026-07-04 19:44:31
-- Data latest date: 2026-07-03
+- Generated: 2026-07-07 08:49:49
+- Data latest date: 2026-07-06
 - Scope: label-only review; no model training; no formal candidates.
 
 ## Old Target

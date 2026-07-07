@@ -12,11 +12,11 @@
 - Status: `coverage_ready_for_limited_attention_disposition_features`
 - Recommended next step: `prepare_limited_attention_disposition_feature_contract`
 - Allowed scope: `attention_disposition_only`
-- Usable rows by market latest date: 3832
+- Usable rows by market latest date: 3840
 - Raw rows including future effective dates: 3895
-- Future rows excluded from coverage: 63
-- Top event type: attention (96.56%)
-- Top source: TWSE historical attention (96.27%)
+- Future rows excluded from coverage: 55
+- Top event type: attention (96.35%)
+- Top source: TWSE historical attention (96.07%)
 
 ## Split Coverage
 
@@ -24,15 +24,15 @@
 |---|---:|---:|---:|---:|---:|---:|---:|
 | train | 2304 | 470 | 96.91% | 59.06% | 2243 | 61 | 0 |
 | development | 542 | 55 | 100.00% | 32.28% | 542 | 0 | 0 |
-| holdout | 986 | 64 | 100.00% | 61.02% | 915 | 20 | 51 |
+| holdout | 994 | 65 | 100.00% | 62.60% | 915 | 20 | 59 |
 
 ## Event Type Concentration
 
 | event type | rows | share | stocks |
 |---|---:|---:|---:|
-| attention | 3700 | 96.56% | 177 |
+| attention | 3700 | 96.35% | 177 |
 | disposition | 81 | 2.11% | 52 |
-| ex_dividend | 26 | 0.68% | 26 |
+| ex_dividend | 34 | 0.89% | 34 |
 | material_info | 22 | 0.57% | 18 |
 | investor_meeting | 3 | 0.08% | 3 |
 
@@ -40,11 +40,11 @@
 
 | source | rows | share | event types |
 |---|---:|---:|---|
-| TWSE historical attention | 3689 | 96.27% | attention |
+| TWSE historical attention | 3689 | 96.07% | attention |
 | TWSE historical disposition | 61 | 1.59% | disposition |
-| TWSE material information | 19 | 0.50% | investor_meeting | material_info |
-| TWSE ex-dividend preview | 13 | 0.34% | ex_dividend |
-| TPEx ex-dividend preview | 12 | 0.31% | ex_dividend |
+| TWSE material information | 19 | 0.49% | investor_meeting | material_info |
+| TWSE ex-dividend preview | 18 | 0.47% | ex_dividend |
+| TPEx ex-dividend preview | 15 | 0.39% | ex_dividend |
 | TWSE disposition securities | 12 | 0.31% | disposition |
 | TPEx attention securities | 11 | 0.29% | attention |
 | TPEx disposition securities | 8 | 0.21% | disposition |

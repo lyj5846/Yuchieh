@@ -27,6 +27,8 @@ MAIN_MODEL_SCORES_PATH = PROJECT_ROOT / "model_layer" / "main_model_scores.csv"
 MAIN_MODEL_VALIDATION_SUMMARY_PATH = PROJECT_ROOT / "validation_layer" / "main_model_validation_summary.csv"
 REPEAT_SIGNAL_EPISODE_DECISION_PATH = PROJECT_ROOT / "decision_layer" / "repeat_signal_episode_decision.json"
 
+MAX_FORMAL_RAW_RANK = 10
+
 TRACKING_COLUMNS = [
     "as_of_date",
     "signal_date",
@@ -126,6 +128,11 @@ def parse_args() -> argparse.Namespace:
         "--as-of-date",
         default=None,
         help="Use this completed trading date for formal output, even if raw CSVs contain newer incomplete rows.",
+    )
+    parser.add_argument(
+        "--rebuild-ledger-from",
+        default=None,
+        help="Rebuild formal signal ledger from this signal date through --as-of-date using current rules.",
     )
     return parser.parse_args()
 
@@ -327,7 +334,47 @@ def approved_main_model(decision: dict) -> bool:
     )
 
 
-def latest_model_candidates(decision: dict, latest_date: str, config: dict) -> list[dict]:
+def stock_trading_index(stock_by_id: dict[str, list[dict]], stock_id: str, signal_date: str) -> int | None:
+    row = next((item for item in stock_by_id.get(stock_id, []) if item.get("日期") == signal_date), None)
+    if not row:
+        return None
+    try:
+        return int(row["_trading_index"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def blocked_by_existing_ledger(
+    candidate: dict,
+    ledger_rows: list[dict],
+    stock_by_id: dict[str, list[dict]],
+    block_all_repeats: bool,
+) -> bool:
+    stock_id = str(candidate.get("股票代號", "")).strip()
+    signal_date = str(candidate.get("日期", ""))
+    current_index = stock_trading_index(stock_by_id, stock_id, signal_date)
+    if current_index is None:
+        return False
+    for row in ledger_rows:
+        if str(row.get("stock_id", "")).strip() != stock_id:
+            continue
+        prior_date = str(row.get("signal_date", ""))
+        if not prior_date or prior_date >= signal_date:
+            continue
+        if block_all_repeats:
+            return True
+        prior_index = stock_trading_index(stock_by_id, stock_id, prior_date)
+        if prior_index is not None and current_index - prior_index <= 10:
+            return True
+    return False
+
+
+def latest_model_candidates(
+    decision: dict,
+    latest_date: str,
+    config: dict,
+    rebuild_ledger_from: str | None = None,
+) -> list[dict]:
     stock_by_id = read_stock_rows(Path(config["allowed_inputs"]["stock_daily_all"]))
     score_rows = read_model_scores()
     if not score_rows:
@@ -338,12 +385,17 @@ def latest_model_candidates(decision: dict, latest_date: str, config: dict) -> l
             f"{latest_date}. Run scripts/run_main_model_training_pipeline.py before formal output."
         )
     gate = parse_float(decision.get("selected_gate"))
+    block_all_repeats = block_repeat_formal_candidates()
+    ledger_rows = [] if rebuild_ledger_from else filter_ledger_as_of(read_csv_rows(FORMAL_SIGNAL_LEDGER_PATH), latest_date)
     replay_candidates = select_replay_candidates(
         score_rows,
         stock_by_id,
         latest_date,
         gate,
-        block_repeats=block_repeat_formal_candidates(),
+        block_repeats=block_all_repeats,
+        ledger_rows=ledger_rows,
+        block_all_ledger_repeats=block_all_repeats,
+        replay_start_date=rebuild_ledger_from,
     )
     return [row for row in replay_candidates if str(row.get("日期", "")) == latest_date]
 
@@ -392,6 +444,11 @@ def signal_key(row: dict) -> tuple[str, str]:
     return str(row.get("signal_date", "")), str(row.get("stock_id", ""))
 
 
+def is_within_formal_raw_rank_limit(row: dict) -> bool:
+    rank = parse_float(row.get("daily_rank"))
+    return rank is not None and rank <= MAX_FORMAL_RAW_RANK
+
+
 def filter_ledger_as_of(ledger_rows: list[dict], as_of_date: str) -> list[dict]:
     return [
         row
@@ -434,10 +491,16 @@ def select_replay_candidates(
     latest_date: str,
     gate: float | None,
     block_repeats: bool = False,
+    ledger_rows: list[dict] | None = None,
+    block_all_ledger_repeats: bool = False,
+    replay_start_date: str | None = None,
 ) -> list[dict]:
     score_rows = [row for row in score_rows if str(row.get("日期", "")) <= latest_date]
     signal_dates = sorted({str(row["日期"]) for row in score_rows})
-    replay_dates = set(signal_dates[-10:])
+    if replay_start_date:
+        replay_dates = {date for date in signal_dates if replay_start_date <= date <= latest_date}
+    else:
+        replay_dates = set(signal_dates[-10:])
     rows_by_date: dict[str, list[dict]] = {}
     for row in score_rows:
         rows_by_date.setdefault(str(row["日期"]), []).append(row)
@@ -452,6 +515,8 @@ def select_replay_candidates(
             continue
         selected_today = 0
         for row in day_rows:
+            if not is_within_formal_raw_rank_limit(row):
+                continue
             stock_id = str(row.get("股票代號", "")).strip()
             stock_rows = stock_by_id.get(stock_id, [])
             price_row = next((item for item in stock_rows if item.get("日期") == signal_date), None)
@@ -461,6 +526,12 @@ def select_replay_candidates(
             if stock_id in last_pick_index:
                 if block_repeats or stock_index - last_pick_index[stock_id] <= 10:
                     continue
+            if (
+                ledger_rows
+                and signal_date == latest_date
+                and blocked_by_existing_ledger(row, ledger_rows, stock_by_id, block_all_ledger_repeats)
+            ):
+                continue
             last_pick_index[stock_id] = stock_index
             selected_today += 1
             if signal_date in replay_dates:
@@ -583,22 +654,44 @@ def merge_signal_ledger(
     decision: dict,
     today_candidates: list[dict],
     generated: str,
+    rebuild_ledger_from: str | None = None,
 ) -> tuple[list[dict], list[dict]]:
     stock_by_id = read_stock_rows(Path(config["allowed_inputs"]["stock_daily_all"]))
     score_rows = read_model_scores()
     top_sets = raw_top_stock_sets(limit=10)
     gate = parse_float(decision.get("selected_gate"))
     ledger_rows = filter_ledger_as_of(read_csv_rows(FORMAL_SIGNAL_LEDGER_PATH), latest_date)
+    if rebuild_ledger_from:
+        ledger_rows = [
+            row
+            for row in ledger_rows
+            if str(row.get("signal_date", "")) and str(row.get("signal_date", "")) < rebuild_ledger_from
+        ]
+    today_keys = {
+        (str(candidate.get("日期", "")), str(candidate.get("股票代號", "")))
+        for candidate in today_candidates
+    }
+    if not rebuild_ledger_from:
+        ledger_rows = [
+            row
+            for row in ledger_rows
+            if not (
+                row.get("signal_date") == latest_date
+                and row.get("candidate_type") == "new_formal"
+                and signal_key(row) not in today_keys
+            )
+        ]
     existing = {signal_key(row) for row in ledger_rows}
     additions: list[dict] = []
 
-    if not ledger_rows:
+    if rebuild_ledger_from or not ledger_rows:
         for candidate in select_replay_candidates(
             score_rows,
             stock_by_id,
             latest_date,
             gate,
             block_repeats=block_repeat_formal_candidates(),
+            replay_start_date=rebuild_ledger_from,
         ):
             candidate_type = "new_formal" if candidate.get("日期") == latest_date else "replay_seed"
             row = candidate_to_ledger_row(candidate, candidate_type, generated)
@@ -779,6 +872,19 @@ def pct_text(value: str) -> str:
     return f"{parsed:.2%}"
 
 
+def failure_feature_text(row: dict) -> str:
+    features: list[str] = ["10日內未達+3%收盤"]
+    max_return = parse_float(row.get("max_close_return_so_far"))
+    min_low = parse_float(row.get("min_low_return_so_far"))
+    if max_return is not None:
+        features.append(f"最高收盤僅{max_return:.2%}")
+    if min_low is not None:
+        features.append(f"最低低點回撤{min_low:.2%}")
+    if row.get("hit_minus3_low_date"):
+        features.append("曾觸及-3%風險")
+    return "；".join(features)
+
+
 def md_table(columns: list[str], rows: list[dict]) -> list[str]:
     lines = ["| " + " | ".join(columns) + " |", "| " + " | ".join(["---"] * len(columns)) + " |"]
     if not rows:
@@ -828,6 +934,21 @@ def write_daily_report(latest_date: str, today_candidates: list[dict], continuat
         }
         for row in ledger_rows
     ]
+    failure_learning_display = [
+        {
+            "訊號日": row.get("signal_date", ""),
+            "股票": f"{row.get('stock_id', '')} {row.get('stock_name', '')}",
+            "買入日": row.get("buy_date", ""),
+            "最高收盤報酬": pct_text(row.get("max_close_return_so_far", "")),
+            "最高收盤報酬日期": row.get("max_close_return_date", ""),
+            "最低低點回撤": pct_text(row.get("min_low_return_so_far", "")),
+            "-3%風險日": row.get("hit_minus3_low_date", ""),
+            "客觀失敗特徵": failure_feature_text(row),
+            "是否納入後續學習": "是，已結案failure",
+        }
+        for row in ledger_rows
+        if row.get("tracking_status") == "failure" and int(row.get("observed_trading_days") or 0) >= 10
+    ]
     lines = [
         "# Formal Daily Report",
         "",
@@ -838,6 +959,14 @@ def write_daily_report(latest_date: str, today_candidates: list[dict], continuat
         "",
         "## 今日新進正式候選",
         "",
+        *(
+            []
+            if new_rows
+            else [
+                "- 今日沒有新進正式候選；raw Top10 內無未追蹤候選，raw 11+ 不補正式候選。",
+                "",
+            ]
+        ),
         *md_table(["股票", "原始排名", "research_score", "連續被推薦次數", "類型"], new_rows),
         "",
         "## 高分續強但已追蹤",
@@ -847,6 +976,13 @@ def write_daily_report(latest_date: str, today_candidates: list[dict], continuat
         "## 正式候選追蹤",
         "",
         *md_table(["訊號日", "股票", "連續被推薦次數", "買入日", "已追蹤日", "最高收盤報酬", "最高收盤報酬日期", "+3%達成日", "-3%風險日", "狀態"], tracking_display),
+        "",
+        "## 已結案失敗學習表",
+        "",
+        "- 只列滿10個交易日且正式結案為 failure 的候選。",
+        "- 這是學習素材，不會直接修改今日候選或模型。",
+        "",
+        *md_table(["訊號日", "股票", "買入日", "最高收盤報酬", "最高收盤報酬日期", "最低低點回撤", "-3%風險日", "客觀失敗特徵", "是否納入後續學習"], failure_learning_display),
         "",
     ]
     FORMAL_DAILY_REPORT_MD_PATH.write_text("\n".join(lines), encoding="utf-8")
@@ -882,6 +1018,7 @@ def write_formal_files(
     candidates: list[dict] | None = None,
     raw_stock_latest_date: str | None = None,
     raw_market_latest_date: str | None = None,
+    rebuild_ledger_from: str | None = None,
 ) -> None:
     generated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     active = bool(candidates)
@@ -960,7 +1097,14 @@ def write_formal_files(
                     ]
                 )
     if approved_main_model(decision or {}):
-        ledger_rows, _ = merge_signal_ledger(config, latest_date, decision or {}, candidates or [], generated)
+        ledger_rows, _ = merge_signal_ledger(
+            config,
+            latest_date,
+            decision or {},
+            candidates or [],
+            generated,
+            rebuild_ledger_from=rebuild_ledger_from,
+        )
         continuations = continuation_rows(config, latest_date, ledger_rows, candidates or [])
         write_tracking_outputs(latest_date, ledger_rows)
         write_daily_report(latest_date, candidates or [], continuations, ledger_rows)
@@ -981,10 +1125,20 @@ def main() -> None:
     stock_stats = csv_stats(paths["stock_daily_all"])
     market_stats = csv_stats(paths["market_daily"])
     latest_date = resolve_as_of_date(args.as_of_date, stock_stats, market_stats, paths)
+    rebuild_ledger_from = parse_date(args.rebuild_ledger_from).strftime("%Y-%m-%d") if args.rebuild_ledger_from else None
+    if rebuild_ledger_from:
+        if parse_date(rebuild_ledger_from) > parse_date(latest_date):
+            fail(f"--rebuild-ledger-from {rebuild_ledger_from} is after as-of date {latest_date}")
+        stock_dates = csv_date_set(paths["stock_daily_all"])
+        market_dates = csv_date_set(paths["market_daily"])
+        if rebuild_ledger_from not in stock_dates:
+            fail(f"--rebuild-ledger-from {rebuild_ledger_from} is missing from stock_daily_all.csv")
+        if rebuild_ledger_from not in market_dates:
+            fail(f"--rebuild-ledger-from {rebuild_ledger_from} is missing from market_daily.csv")
     write_layer_contracts(stock_stats, market_stats, paths["theme_group"], latest_date)
     main_model_decision = read_main_model_decision()
     if approved_main_model(main_model_decision):
-        candidates = latest_model_candidates(main_model_decision, latest_date, config)
+        candidates = latest_model_candidates(main_model_decision, latest_date, config, rebuild_ledger_from=rebuild_ledger_from)
         if candidates:
             reason = "single main model passed candidate-region holdout validation"
         else:
@@ -997,6 +1151,7 @@ def main() -> None:
             candidates,
             stock_stats["latest_date"],
             market_stats["latest_date"],
+            rebuild_ledger_from=rebuild_ledger_from,
         )
         decision_line = "promote validated single main model."
         formal_result = "formal candidates written" if candidates else config["formal_candidate_default"]
@@ -1011,6 +1166,7 @@ def main() -> None:
             reason,
             raw_stock_latest_date=stock_stats["latest_date"],
             raw_market_latest_date=market_stats["latest_date"],
+            rebuild_ledger_from=rebuild_ledger_from,
         )
         decision_line = "keep current formal benchmark."
         formal_result = config["formal_candidate_default"]
@@ -1022,6 +1178,7 @@ def main() -> None:
                 f"- Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
                 f"- Raw data latest date: stock={stock_stats['latest_date']}; market={market_stats['latest_date']}",
                 f"- Formal report as-of date: {latest_date}",
+                f"- Ledger rebuild from: {rebuild_ledger_from or 'not requested'}",
                 f"- Decision: {decision_line}",
                 f"- Formal result: {formal_result}",
                 "- Next allowed work: track formal candidates; retrain only through the single main model pipeline.",
@@ -1034,6 +1191,7 @@ def main() -> None:
     print(f"RAW_STOCK_LATEST_DATE: {stock_stats['latest_date']}")
     print(f"RAW_MARKET_LATEST_DATE: {market_stats['latest_date']}")
     print(f"AS_OF_DATE: {latest_date}")
+    print(f"REBUILD_LEDGER_FROM: {rebuild_ledger_from or ''}")
     print(f"FORMAL_STATUS: {FORMAL_STATUS_PATH}")
     print(f"FORMAL_CANDIDATES: {FORMAL_CANDIDATES_PATH}")
 

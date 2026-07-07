@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-07-07 08:51:14",
+  "status": "candidate_for_main_model_feature_integration",
+  "recommended_next_step": "plan_theme_rotation_feature_contract",
+  "reason": "Theme rotation features show stable train/development learnability and can be planned as main-model features.",
+  "minimum_stable_features": 6,
+  "stable_feature_count": 37,
+  "used_holdout_for_selection": false,
+  "formal_output_changed": false
+}

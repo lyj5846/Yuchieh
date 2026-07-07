@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-04 19:44:58",
+  "generated_at": "2026-07-07 08:50:23",
   "status": "current_target_label_viable_but_model_failed",
   "recommended_next_step": "review_data_enrichment",
   "reason": "目前主目標已回到 10 日內 +3%；-3% 只作風險旁支標籤。此審查保留硬風險目標作比較，但不建議把 -3% 再改回自動失敗。",
@@ -12,18 +12,18 @@
     "is_old_baseline": true,
     "train_success_rate": 0.5162424332027368,
     "development_success_rate": 0.630533362124811,
-    "holdout_success_rate": 0.7126369183268396,
-    "holdout_success_count": 9694,
+    "holdout_success_rate": 0.7063875857091303,
+    "holdout_success_count": 9787,
     "holdout_adverse_first_rate": 0.0,
-    "holdout_avg_realized_rule_return": -0.0005779847219684621,
-    "split_success_rate_max_gap": 0.19639448512410285,
-    "monthly_success_rate_std": 0.10496318862575402,
+    "holdout_avg_realized_rule_return": -0.0013321111102099392,
+    "split_success_rate_max_gap": 0.19014515250639352,
+    "monthly_success_rate_std": 0.10473161187489231,
     "positive_month_share": 1.0,
     "enough_samples": true,
     "base_rate_usable": false,
     "realized_positive": true,
     "stable_across_splits": false,
-    "decision_score": 1.2978256676562125
+    "decision_score": 1.296533736391507
   },
   "best_non_old_target": {
     "target_id": "risk_adjusted_3pct_before_minus3pct_10d",
@@ -32,17 +32,17 @@
     "is_old_baseline": false,
     "train_success_rate": 0.3605696966710199,
     "development_success_rate": 0.35780608939753833,
-    "holdout_success_rate": 0.39550099242814085,
-    "holdout_success_count": 5380,
-    "holdout_adverse_first_rate": 0.5925898698816437,
-    "holdout_avg_realized_rule_return": -0.0059466688377384355,
-    "split_success_rate_max_gap": 0.03769490303060252,
-    "monthly_success_rate_std": 0.04826883812758128,
+    "holdout_success_rate": 0.38939011187297007,
+    "holdout_success_count": 5395,
+    "holdout_adverse_first_rate": 0.5987730061349693,
+    "holdout_avg_realized_rule_return": -0.00631722215441038,
+    "split_success_rate_max_gap": 0.03158402247543174,
+    "monthly_success_rate_std": 0.048836336669618334,
     "positive_month_share": 0.9666666666666667,
     "enough_samples": true,
     "base_rate_usable": true,
     "realized_positive": false,
     "stable_across_splits": true,
-    "decision_score": 4.902838408592013
+    "decision_score": 4.9052437559804645
   }
 }

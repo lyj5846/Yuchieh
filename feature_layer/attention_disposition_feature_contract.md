@@ -40,11 +40,11 @@
 
 ## Coverage Basis
 
-- Usable historical rows: 3832
+- Usable historical rows: 3840
 - Attention rows: 3700
 - Disposition rows: 81
-- Other rows: 51
-- Dominant source: TWSE historical attention (96.27%)
+- Other rows: 59
+- Dominant source: TWSE historical attention (96.07%)
 
 ## Next Boundary
 

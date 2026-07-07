@@ -1,7 +1,7 @@
 # Data Learnability Review
 
-- Generated: 2026-07-04 19:44:53
-- Data latest date: 2026-07-03
+- Generated: 2026-07-07 08:50:17
+- Data latest date: 2026-07-06
 - Scope: data/label learnability only; no model training; no stock candidates.
 - Formal output: unchanged by this review.
 
@@ -14,26 +14,26 @@
 
 ## Holdout Snapshot
 
-- Primary +3% success rate: 71.26%
-- Hard risk-adjusted comparison success rate: 39.55%
-- Success with -3% drawdown side risk: 31.71%
-- Drawdown side risk among successes: 44.50%
-- Average max adverse return: -8.11%
-- Average realized rule return: 5.42%
+- Primary +3% success rate: 70.64%
+- Hard risk-adjusted comparison success rate: 38.94%
+- Success with -3% drawdown side risk: 31.70%
+- Drawdown side risk among successes: 44.88%
+- Average max adverse return: -8.19%
+- Average realized rule return: 5.26%
 
 ## Learnable Signal Counts
 
-- Stable success features: 42
-- Stable risk-filter features: 71
-- Stable return-ranking features: 56
+- Stable success features: 70
+- Stable risk-filter features: 102
+- Stable return-ranking features: 85
 
 ## Top Feature Clues
 
 These are distinguishability clues, not buy reasons; a stable negative direction can still be useful for filtering risk.
 
-- Success target clues: market_margin_5, theme_軟體／電信／雲平台, market_breadth, 融資餘額, 加權指數收盤_ret_3, 融券餘額, volatility_20, close_ret_5
-- Risk-filter clues: theme_軟體／電信／雲平台, market_breadth, 融資餘額, 加權指數收盤_ret_3, 融券餘額, volatility_20, close_ret_5, industry_volume_rank_20
-- Return-ranking clues: market_margin_5, theme_軟體／電信／雲平台, market_breadth, 融資餘額, 加權指數收盤_ret_3, 融券餘額, volatility_20, volatility_10
+- Success target clues: market_margin_5, theme_軟體／電信／雲平台, market_breadth, theme_avg_ret_5, 融資餘額, 加權指數收盤_ret_3, theme_avg_close_vs_ma_10, close_ret_5
+- Risk-filter clues: theme_軟體／電信／雲平台, market_breadth, theme_avg_ret_5, 融資餘額, 加權指數收盤_ret_3, theme_avg_close_vs_ma_10, close_ret_5, 融券餘額
+- Return-ranking clues: market_margin_5, theme_軟體／電信／雲平台, market_breadth, 融資餘額, 加權指數收盤_ret_3, 融券餘額, volatility_20, 電子指數收盤_ret_3
 
 ## Boundary
 
